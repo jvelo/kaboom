@@ -18,40 +18,64 @@ import javax.sql.DataSource
 @Retention(RetentionPolicy.RUNTIME)
 annotation class table(val path: String = "")
 
-interface ResultSetMapper<out M> {
+interface ResultSetMapper<M> {
     fun map(rs: ResultSet): M
 }
 
-class DataClassResultSetMapper<out M>
-    (klass: java.lang.Class<M>)
+class DataClassResultSetMapper<M> (modelClass: java.lang.Class<M>)
     : ResultSetMapper<M> {
 
-    init {
+    private val constructor: Constructor<M>
+    private val fieldNames: List<String>
 
+    init {
+        val constructors = modelClass.getDeclaredConstructors()
+
+        if (constructors.size() < 1) {
+            throw IllegalStateException("Could not find model constructor")
+        }
+
+        constructor = constructors[0] as Constructor<M>
+
+        fieldNames = modelClass.getDeclaredFields()
+                .map { it.getName() }
+                .filterNot { it.equals("\$kotlinClass") }
     }
 
     override fun map(rs: ResultSet): M {
-        throw RuntimeException()
+        val args = fieldNames.map { rs.get(it) }.toTypedArray()
+        return constructor.newInstance(*args)
     }
 
 }
 
-open class Dao<out M, in K>(val dataSource: DS) {
+open class Dao<M, in K>(val dataSource: DS) {
+
+    val mapper: ResultSetMapper<M>
+    val tableName: String
+
+    init {
+        tableName = this.javaClass.getSimpleName().toLowerCase()
+        mapper = DataClassResultSetMapper<M>(getModelType() as java.lang.Class<M>)
+    }
 
     fun withId(id: K) : M? {
-
+        val connection = this.dataSource.get().getConnection()
+        val statement = connection.prepareStatement("select * from ${tableName} where id = ?")
+        statement.setObject(1, id)
+        val rs = statement.executeQuery();
+        if (!rs.next()) {
+            return null
+        } else {
+            return this.mapper.map(rs)
+        }
     }
 
     fun findWhere(sql: String, vararg args: Any): List<M> {
-        val tableName = this.javaClass.getSimpleName().toLowerCase()
-        val constructor = this.getModelConstructor()
-        val fieldNames = this.getFieldNames()
         val result = arrayListOf<M>()
         this.dataSource.get().query("select * from ${tableName}", {
             for (row in it) {
-                val args = fieldNames.map { row.get(it) }.toTypedArray()
-                val m : M = constructor.newInstance(*args)
-                result.add(m)
+                result.add(this.mapper.map(row))
             }
         })
         return result
@@ -71,18 +95,6 @@ open class Dao<out M, in K>(val dataSource: DS) {
 
     private fun getKeyType(): Type {
         return getParametrizedTypes().get(0)
-    }
-
-    private fun getFieldNames() = (getModelType() as java.lang.Class<*>).getDeclaredFields()
-            .map { it.getName() }
-            .filterNot { it.equals("\$kotlinClass") }
-
-    private fun getModelConstructor(): Constructor<M> {
-        val constructors = (getModelType() as java.lang.Class<*>).getDeclaredConstructors()
-        if (constructors.size() < 1) {
-            throw IllegalStateException("Could not find model constructor")
-        }
-        return constructors[0] as Constructor<M>
     }
 }
 
@@ -119,13 +131,14 @@ object Users : Dao<User, Int>(DS)
 fun main(args: Array<String>) {
 
     val logger = LoggerFactory.getLogger(::main.javaClass);
-
     val users = Users.findWhere("name = ?", "Jerome")
 
     users.map({ user ->
-        println(user.id)
-        println(user.name)
-        println(user.password)
+        println(user)
     })
+
+    println("> With id 3 ->")
+
+    Users.withId(3).let { println(it) }
 
 }
