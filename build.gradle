@@ -33,6 +33,7 @@ dependencies {
     compile 'org.postgresql:postgresql:9.4-1201-jdbc41'
     compile 'org.slf4j:slf4j-api:1.7.12'
     compile 'org.slf4j:slf4j-simple:1.7.12'
+    compile 'org.glassfish:javax.json:1.0.4'
 }
 
 artifacts {

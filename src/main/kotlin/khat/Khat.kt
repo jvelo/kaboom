@@ -7,13 +7,17 @@ import java.sql.SQLException
 import java.util.*
 import kotlin.jdbc.*
 import org.slf4j.LoggerFactory
+import java.io.StringReader
 import java.lang.annotation.Retention
 import java.lang.annotation.RetentionPolicy
 import java.lang.reflect.Constructor
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import java.sql.ResultSet
+import javax.json.Json
+import javax.json.JsonObject
 import javax.sql.DataSource
+import kotlin.reflect.KClass
 
 @Retention(RetentionPolicy.RUNTIME)
 annotation class table(val path: String = "")
@@ -26,7 +30,7 @@ class DataClassResultSetMapper<M> (modelClass: java.lang.Class<M>)
     : ResultSetMapper<M> {
 
     private val constructor: Constructor<M>
-    private val fieldNames: List<String>
+    private val fields: List<Pair<String, Class<*>>>
 
     init {
         val constructors = modelClass.getDeclaredConstructors()
@@ -37,13 +41,24 @@ class DataClassResultSetMapper<M> (modelClass: java.lang.Class<M>)
 
         constructor = constructors[0] as Constructor<M>
 
-        fieldNames = modelClass.getDeclaredFields()
-                .map { it.getName() }
-                .filterNot { it.equals("\$kotlinClass") }
+        fields = modelClass.getDeclaredFields()
+                .map { Pair(it.getName(), it.getType()) }
+                .filterNot { it.first.equals("\$kotlinClass") }
     }
 
     override fun map(rs: ResultSet): M {
-        val args = fieldNames.map { rs.get(it) }.toTypedArray()
+        val args = fields.map {
+            val value = rs.get(it.first)
+            val type = it.second
+            when {
+                type.isAssignableFrom(javaClass<JsonObject>()) -> {
+                    val reader = Json.createReader(StringReader(value.toString()))
+                    reader.read() as JsonObject
+                }
+                else -> value
+            }
+
+        }.toTypedArray()
         return constructor.newInstance(*args)
     }
 
@@ -126,13 +141,21 @@ data class User(
         val password: String
 )
 
+// CREATE TABLE records (id uuid, doc jsonb)
+// insert into records values ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '{"a": "b", "c": 2}');
+data class Record(
+        val id: UUID,
+        val doc: JsonObject
+)
+
 object Users : Dao<User, Int>(DS)
+object Records: Dao<Record, UUID>(DS)
 
 fun main(args: Array<String>) {
 
     val logger = LoggerFactory.getLogger(::main.javaClass);
+    
     val users = Users.findWhere("name = ?", "Jerome")
-
     users.map({ user ->
         println(user)
     })
@@ -140,5 +163,7 @@ fun main(args: Array<String>) {
     println("> With id 3 ->")
 
     Users.withId(3).let { println(it) }
+
+    Records.withId(UUID.fromString("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")).let { println(it) }
 
 }
