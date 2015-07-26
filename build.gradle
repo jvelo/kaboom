@@ -1,0 +1,44 @@
+buildscript {
+    ext.kotlinVersion = '0.12.+'
+
+    repositories {
+        mavenCentral()
+        jcenter()
+        maven {
+            url 'http://oss.sonatype.org/content/repositories/snapshots'
+        }
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+    }
+}
+
+version = '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+apply plugin: 'kotlin'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    jcenter()
+    maven {
+        url 'http://oss.sonatype.org/content/repositories/snapshots'
+    }
+}
+
+dependencies {
+    compile 'org.jetbrains.kotlin:kotlin-jdbc:0.12.1218'
+    compile 'org.jetbrains.kotlin:kotlin-reflect:0.12.1218'
+    compile 'org.postgresql:postgresql:9.4-1201-jdbc41'
+    compile 'org.slf4j:slf4j-api:1.7.12'
+    compile 'org.slf4j:slf4j-simple:1.7.12'
+}
+
+artifacts {
+    file('build/libs/khat.jar')
+}
+sourceSets {
+    main.java.srcDirs += 'src/main/kotlin'
+}
+
