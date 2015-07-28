@@ -68,6 +68,7 @@ class DataClassResultSetMapper<M>(modelClass: java.lang.Class<M>)
                     val reader = Json.createReader(StringReader(value.toString()))
                     reader.read() as JsonObject
                 }
+                type.isAssignableFrom(javaClass<UUID>()) -> UUID.fromString(value.toString())
                 else -> value
             }
 
@@ -95,7 +96,7 @@ data class Query(
         val arguments: List<Any> = listOf()
 )
 
-class QueryBuilder<M>(val dataSource: DS, val mapper: ResultSetMapper<M>, val query: Query) {
+class QueryBuilder<M>(val dataSource: DataSourceProvider, val mapper: ResultSetMapper<M>, val query: Query) {
 
     fun where(where: String) = QueryBuilder<M>(dataSource, mapper, query.copy(where = where))
 
@@ -148,14 +149,15 @@ class QueryBuilder<M>(val dataSource: DS, val mapper: ResultSetMapper<M>, val qu
             (if (query.offset != null) " LIMIT ${query.offset}" else "")
 }
 
-open class Dao<M, in K>(val dataSource: DS) {
+open class Dao<M, in K>(val dataSource: DataSourceProvider) {
 
     val mapper: ResultSetMapper<M>
     val tableName: String
 
     suppress("UNCHECKED_CAST")
     init {
-        tableName = this.javaClass.getSimpleName().toLowerCase()
+        tableName = getTableAnnotation()?.let { it.name } ?:
+                this.javaClass.getSimpleName().toLowerCase()
         mapper = DataClassResultSetMapper<M>(getModelType() as java.lang.Class<M>)
     }
 
@@ -182,6 +184,9 @@ open class Dao<M, in K>(val dataSource: DS) {
         return types
     }
 
+    private fun getTableAnnotation() = (this.getModelType() as Class<M>)
+            .getAnnotationsByType(javaClass<table>()).firstOrNull()
+
     private fun getModelType(): Type {
         return getParametrizedTypes().get(0)
     }
@@ -191,7 +196,11 @@ open class Dao<M, in K>(val dataSource: DS) {
     }
 }
 
-object DS {
+interface DataSourceProvider {
+    fun get() : DataSource
+}
+
+object DS : DataSourceProvider{
     private val source: PGPoolingDataSource
 
     init {
@@ -208,7 +217,7 @@ object DS {
         source.setMaxConnections(10);
     }
 
-    fun get(): DataSource {
+    override fun get(): DataSource {
         return this.source
     }
 }
