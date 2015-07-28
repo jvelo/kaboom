@@ -27,6 +27,13 @@ annotation class table(val name: String = "")
 @Retention(RetentionPolicy.RUNTIME)
 annotation class column(val name: String)
 
+interface TableFilter {
+    fun get(): String
+}
+
+@Retention(RetentionPolicy.RUNTIME)
+annotation class filter(val where: String)
+
 interface ResultSetMapper<M> {
     fun map(rs: ResultSet): M
 }
@@ -89,7 +96,7 @@ class DataClassResultSetMapper<M>(modelClass: java.lang.Class<M>)
 
 data class Query(
         val select: String,
-        val where: String? = null,
+        val where: List<String> = listOf(),
         val order: String? = null,
         val limit: Long? = null,
         val offset: Long? = null,
@@ -98,7 +105,8 @@ data class Query(
 
 class QueryBuilder<M>(val dataSource: DataSourceProvider, val mapper: ResultSetMapper<M>, val query: Query) {
 
-    fun where(where: String) = QueryBuilder<M>(dataSource, mapper, query.copy(where = where))
+    fun where(where: String) = QueryBuilder<M>(dataSource, mapper,
+            query.copy(where = query.where.plus(where)))
 
     fun limit(limit: Long) = QueryBuilder<M>(dataSource, mapper, query.copy(limit = limit))
 
@@ -106,9 +114,11 @@ class QueryBuilder<M>(val dataSource: DataSourceProvider, val mapper: ResultSetM
 
     fun order(order: String) = QueryBuilder<M>(dataSource, mapper, query.copy(order = order))
 
-    fun argument(argument: Any) = QueryBuilder<M>(dataSource, mapper, query.copy(arguments = this.query.arguments.plus(argument)))
+    fun argument(argument: Any) = QueryBuilder<M>(dataSource, mapper,
+            query.copy(arguments = query.arguments.plus(argument)))
 
-    fun arguments(vararg arguments: Any) = QueryBuilder<M>(dataSource, mapper, query.copy(arguments = this.query.arguments.plus(arguments)))
+    fun arguments(vararg arguments: Any) = QueryBuilder<M>(dataSource, mapper,
+            query.copy(arguments = query.arguments.plus(arguments)))
 
     fun execute(): List<M> {
         println(serialize())
@@ -143,7 +153,7 @@ class QueryBuilder<M>(val dataSource: DataSourceProvider, val mapper: ResultSetM
     }
 
     private fun serialize(): String = query.select +
-            (if (query.where != null) " WHERE ${query.where}" else "") +
+            (if (query.where.size() > 0) (" WHERE " + this.query.where.join(" AND ")) else "") +
             (if (query.order != null) " ORDER BY ${query.order}" else "") +
             (if (query.limit != null) " LIMIT ${query.limit}" else "") +
             (if (query.offset != null) " LIMIT ${query.offset}" else "")
@@ -162,7 +172,9 @@ open class Dao<M, in K>(val dataSource: DataSourceProvider) {
     }
 
     fun query(): QueryBuilder<M> {
-        return QueryBuilder(dataSource, mapper, Query(select = "select * from ${tableName}"))
+        return QueryBuilder(dataSource, mapper,
+                Query(select = "select * from ${tableName}", where = getFilterWhere())
+        )
     }
 
     suppress("BASE_WITH_NULLABLE_UPPER_BOUND")
@@ -194,6 +206,10 @@ open class Dao<M, in K>(val dataSource: DataSourceProvider) {
     private fun getKeyType(): Type {
         return getParametrizedTypes().get(0)
     }
+
+    private fun getFilterWhere() = (this.getModelType() as Class<M>)
+            .getAnnotationsByType(javaClass<filter>()).firstOrNull()?.let { listOf(it.where) } ?:
+                listOf<String>()
 }
 
 interface DataSourceProvider {
@@ -230,11 +246,15 @@ data class User(
 
 // CREATE TABLE records (id uuid, doc jsonb)
 // insert into records values ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '{"a": "b", "c": 2}');
+// insert into records values ('3c75d791-a654-421c-b442-768a4748dff4', '{"toto":  "tata"}');
+
 table("records")
+filter("doc @> '{\"a\":\"b\"}'")
 data class Record(
         val id: UUID,
         column("doc") val json: JsonObject
 ) {
+    val a: String by Delegates.mapVal(json)
 }
 
 data class Test(json: Map<String, Any?>) {
@@ -253,7 +273,6 @@ fun main(args: Array<String>) {
 
     val logger = LoggerFactory.getLogger(::main.javaClass);
 
-
     val users = Users.findWhere("name = ?", "Jerome")
     users.map({ user ->
         println(user)
@@ -269,6 +288,8 @@ fun main(args: Array<String>) {
             .limit(5)
             .execute()
 
-    Records.withId(UUID.fromString("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")).let { println(it) }
+    Records.withId(UUID.fromString("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")).let {
+        println(it)
+    }
 
 }
