@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory
 import java.util.UUID
 import java.util.function.Supplier
 import javax.json.JsonObject
+import javax.json.JsonString
 import javax.sql.DataSource
 import kotlin.properties.Delegates
 
@@ -48,7 +49,10 @@ data class Document(
         val id: UUID,
         column("doc") val json: JsonObject
 ) {
-    val a: String by Delegates.mapVal(json)
+    val a: JsonString by Delegates.mapVal(json)
+
+    val b: String
+        get() { return a.toString() }
 }
 
 data class Test(json: Map<String, Any?>) {
@@ -66,7 +70,7 @@ object Documents : Dao<Document, UUID>(DataSourceSupplier)
 fun main(args: Array<String>) {
 
     registerDefaultTypesMappers()
-
+    
     val logger = LoggerFactory.getLogger(::main.javaClass);
 
     val users = Users.findWhere("name = ?", "Jerome")
@@ -84,8 +88,11 @@ fun main(args: Array<String>) {
             .limit(5)
             .execute()
 
-    Documents.withId(UUID.fromString("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")).let {
+    val document = Documents.withId(UUID.fromString("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"))
+    document?.let {
         println(it)
+        println(it.a)
+        println(it.b)
     }
 
 }

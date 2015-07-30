@@ -37,7 +37,8 @@ class DataClassConstructorMapper<M>(val modelClass: java.lang.Class<M>)
         constructor = constructors[0] as Constructor<M>
 
         fields = modelClass.getDeclaredFields()
-                .filterNot { it.getName().equals("\$kotlinClass") }
+                .filterNot { it.getName().indexOf('$') >= 0 }
+                .take(constructor.getGenericParameterTypes().size())
                 .mapIndexed { index, field -> ColumnField(field.getName(), field.getType(), getColumnName(index)) }
     }
 
