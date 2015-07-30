@@ -1,5 +1,7 @@
 package khat
 
+import khat.types.Types
+import khat.types.registerDefaultTypesMappers
 import org.postgresql.ds.PGPoolingDataSource
 import org.slf4j.LoggerFactory
 import java.util.UUID
@@ -42,7 +44,7 @@ data class User(
 
 table("records")
 filter("doc @> '{\"a\":\"b\"}'")
-data class Record(
+data class Document(
         val id: UUID,
         column("doc") val json: JsonObject
 ) {
@@ -59,9 +61,11 @@ data class Test(json: Map<String, Any?>) {
 
 object Users : Dao<User, Int>(DataSourceSupplier)
 
-object Records : Dao<Record, UUID>(DataSourceSupplier)
+object Documents : Dao<Document, UUID>(DataSourceSupplier)
 
 fun main(args: Array<String>) {
+
+    registerDefaultTypesMappers()
 
     val logger = LoggerFactory.getLogger(::main.javaClass);
 
@@ -80,7 +84,7 @@ fun main(args: Array<String>) {
             .limit(5)
             .execute()
 
-    Records.withId(UUID.fromString("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")).let {
+    Documents.withId(UUID.fromString("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")).let {
         println(it)
     }
 

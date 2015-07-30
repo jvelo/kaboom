@@ -1,5 +1,7 @@
 package khat
 
+import khat.types.Types
+import khat.types.registerDefaultTypesMappers
 import java.io.StringReader
 import java.lang.reflect.Constructor
 import java.sql.ResultSet
@@ -12,7 +14,7 @@ interface ResultSetMapper<M> {
     fun map(rs: ResultSet): M
 }
 
-class DataClassResultSetMapper<M>(modelClass: java.lang.Class<M>)
+class DataClassConstructorMapper<M>(val modelClass: java.lang.Class<M>)
 : ResultSetMapper<M> {
 
     class ColumnField(
@@ -37,24 +39,24 @@ class DataClassResultSetMapper<M>(modelClass: java.lang.Class<M>)
         fields = modelClass.getDeclaredFields()
                 .filterNot { it.getName().equals("\$kotlinClass") }
                 .mapIndexed { index, field -> ColumnField(field.getName(), field.getType(), getColumnName(index)) }
-
     }
 
     override fun map(rs: ResultSet): M {
         val args = fields.map {
             val value = rs.get(it.columnName ?: it.fieldName)
-            val type = it.fieldClass
-            when {
-                type.isAssignableFrom(javaClass<JsonObject>()) -> {
-                    val reader = Json.createReader(StringReader(value.toString()))
-                    reader.read() as JsonObject
-                }
-                type.isAssignableFrom(javaClass<UUID>()) -> UUID.fromString(value.toString())
-                else -> value
+            if (value != null) {
+                Types.convert(it.fieldClass, value) ?: value
+            } else {
+                null
             }
-
         }.toTypedArray()
-        return constructor.newInstance(*args)
+        try {
+            return constructor.newInstance(*args)
+        } catch(e: IllegalArgumentException) {
+            throw RuntimeException(
+                "Failed to invoke ${modelClass.getCanonicalName()} constructor.\nArguments:\n" +
+                    args.map { it -> "- " + it?.javaClass?.getCanonicalName() + " : " + it }.joinToString("\n"), e)
+        }
     }
 
     private fun getColumnName(index: Int): String? {
