@@ -20,12 +20,12 @@ object DataSourceSupplier : Supplier<DataSource> {
     }
 
     fun initialize() {
-        source.setDataSourceName("A Data Source");
-        source.setServerName("localhost");
-        source.setDatabaseName("test");
-        source.setUser("postgres");
-        source.setPassword("");
-        source.setMaxConnections(10);
+        source setDataSourceName "A Data Source"
+        source setServerName "localhost"
+        source setDatabaseName "test"
+        source setUser "postgres"
+        source setPassword ""
+        source setMaxConnections 10
     }
 
     override fun get(): DataSource {
@@ -70,7 +70,7 @@ object Documents : Dao<Document, UUID>(DataSourceSupplier)
 fun main(args: Array<String>) {
 
     registerDefaultTypesMappers()
-    
+
     val logger = LoggerFactory.getLogger(::main.javaClass);
 
     val users = Users.findWhere("name = ?", "Jerome")
