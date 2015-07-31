@@ -4,18 +4,22 @@ import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import java.util.function.Supplier
 import javax.sql.DataSource
-import kotlin.platform.platformStatic
+import kotlin.properties.Delegates
 
 suppress("BASE_WITH_NULLABLE_UPPER_BOUND", "UNCHECKED_CAST")
-open class Dao<M, in K>(val dataSource: Supplier<DataSource>) {
+open class Dao<M, in K>(
+    val dataSource: Supplier<DataSource>,
+    val customMapper: ResultSetMapper<M>? = null
+) {
 
-    val mapper: ResultSetMapper<M>
+    val mapper: ResultSetMapper<M> by Delegates.lazy {
+        customMapper ?: DataClassConstructorMapper(getModelClass())
+    }
+
     val tableName: String
 
     init {
-        tableName = getTableAnnotation()?.let { it.name } ?:
-                this.javaClass.getSimpleName().toLowerCase()
-        mapper = DataClassConstructorMapper(getModelType() as java.lang.Class<M>)
+        tableName = getTableAnnotation()?.let { it.name } ?: getModelClass().getSimpleName().toLowerCase()
     }
 
     fun query(): QueryBuilder<M> {
@@ -41,13 +45,12 @@ open class Dao<M, in K>(val dataSource: Supplier<DataSource>) {
     }
 
     private fun getModelType(): Type = getParametrizedTypes().get(0)
+    private fun getModelClass(): Class<M> = getModelType() as Class<M>
 
     private fun getKeyType(): Type = getParametrizedTypes().get(1)
 
-    private fun getTableAnnotation() = (this.getModelType() as Class<M>)
-            .getAnnotationsByType(javaClass<table>()).firstOrNull()
+    private fun getTableAnnotation() = getModelClass().getAnnotationsByType(javaClass<table>()).firstOrNull()
 
-    private fun getFilterWhere() = (this.getModelType() as Class<M>)
-            .getAnnotationsByType(javaClass<filter>()).firstOrNull()?.let { listOf(it.where) } ?:
-            listOf<String>()
+    private fun getFilterWhere() = getModelClass().getAnnotationsByType(javaClass<filter>()).firstOrNull()
+            ?.let { listOf(it.where) } ?: listOf<String>()
 }

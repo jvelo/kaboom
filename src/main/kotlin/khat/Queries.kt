@@ -1,5 +1,6 @@
 package khat
 
+import org.slf4j.LoggerFactory
 import java.sql.ResultSet
 import java.util.function.Supplier
 import javax.sql.DataSource
@@ -14,6 +15,8 @@ data class Query(
 )
 
 class QueryBuilder<M>(val dataSource: Supplier<DataSource>, val mapper: ResultSetMapper<M>, val query: Query) {
+
+    val logger = LoggerFactory.getLogger("sql")
 
     fun where(where: String) = QueryBuilder<M>(dataSource, mapper,
             query.copy(where = query.where.plus(where)))
@@ -31,7 +34,6 @@ class QueryBuilder<M>(val dataSource: Supplier<DataSource>, val mapper: ResultSe
             query.copy(arguments = query.arguments.plus(arguments)))
 
     fun execute(): List<M> {
-        println(serialize())
         val rs = getResultSet()
         val result = arrayListOf<M>()
         while (rs.next()) {
@@ -42,7 +44,6 @@ class QueryBuilder<M>(val dataSource: Supplier<DataSource>, val mapper: ResultSe
 
     suppress("BASE_WITH_NULLABLE_UPPER_BOUND")
     fun single(): M? {
-        println(serialize())
         val rs = getResultSet()
         if (!rs.next()) {
             return null
@@ -53,6 +54,7 @@ class QueryBuilder<M>(val dataSource: Supplier<DataSource>, val mapper: ResultSe
 
     private fun getResultSet(): ResultSet {
         val sql = serialize()
+        logger.info(sql)
         val connection = dataSource.get().getConnection()
         val statement = connection.prepareStatement(sql)
         query.arguments.forEachIndexed { i, argument ->
