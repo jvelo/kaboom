@@ -36,6 +36,8 @@ dependencies {
     compile 'org.slf4j:slf4j-api:1.7.12'
     compile 'org.slf4j:slf4j-simple:1.7.12'
     compile 'org.glassfish:javax.json:1.0.4'
+
+    testCompile 'junit:junit:4.12'
 }
 
 artifacts {
