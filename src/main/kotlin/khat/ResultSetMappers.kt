@@ -4,14 +4,39 @@ import khat.types.Types
 import khat.types.registerDefaultTypesMappers
 import java.io.StringReader
 import java.lang.reflect.Constructor
+import java.math.BigDecimal
 import java.sql.ResultSet
+import java.sql.Time
+import java.sql.Timestamp
 import java.util.*
 import javax.json.Json
 import javax.json.JsonObject
 import kotlin.jdbc.get
+import kotlin.reflect.KClass
+import kotlin.reflect.jvm.internal.KClassImpl
+import kotlin.reflect.jvm.java
 
 interface ResultSetMapper<M> {
     fun map(rs: ResultSet): M
+}
+
+fun <T: Any> ResultSet.get(key: String, type: KClass<T>): Any? = this.get(key, type.java)
+
+fun ResultSet.get(key: String, type: Class<*>): Any? = when {
+    this.wasNull() -> null
+    type.isAssignableFrom(javaClass<Boolean>()) -> this.getBoolean(key)
+    type.isAssignableFrom(javaClass<Byte>()) -> this.getByte(key)
+    type.isAssignableFrom(javaClass<Short>()) -> this.getShort(key)
+    type.isAssignableFrom(javaClass<Int>()) -> this.getInt(key)
+    type.isAssignableFrom(javaClass<Long>()) -> this.getLong(key)
+    type.isAssignableFrom(javaClass<Float>()) -> this.getFloat(key)
+    type.isAssignableFrom(javaClass<Double>()) -> this.getDouble(key)
+    type.isAssignableFrom(javaClass<BigDecimal>()) -> this.getBigDecimal(key)
+    type.isAssignableFrom(javaClass<Timestamp>()) -> this.getTimestamp(key)
+    type.isAssignableFrom(javaClass<Time>()) -> this.getTime(key)
+    type.isAssignableFrom(javaClass<Date>()) -> this.getDate(key)
+    type.isAssignableFrom(javaClass<String>()) -> this.getString(key)
+    else -> this.get(key)
 }
 
 class DataClassConstructorMapper<M>(val modelClass: java.lang.Class<M>)
@@ -44,7 +69,7 @@ class DataClassConstructorMapper<M>(val modelClass: java.lang.Class<M>)
 
     override fun map(rs: ResultSet): M {
         val args = fields.map {
-            val value = rs.get(it.columnName ?: it.fieldName)
+            val value = rs.get(it.columnName ?: it.fieldName, it.fieldClass)
             if (value != null) {
                 Types.convert(it.fieldClass, value) ?: value
             } else {

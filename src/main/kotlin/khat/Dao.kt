@@ -6,8 +6,8 @@ import java.util.function.Supplier
 import javax.sql.DataSource
 import kotlin.properties.Delegates
 
-suppress("BASE_WITH_NULLABLE_UPPER_BOUND", "UNCHECKED_CAST")
-open class Dao<M, in K>(
+suppress("UNCHECKED_CAST")
+open class Dao<M: Any, in K>(
     val dataSource: Supplier<DataSource>,
     val customMapper: ResultSetMapper<M>? = null
 ) {
