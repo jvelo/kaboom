@@ -50,7 +50,7 @@ class SqlTest(dsp: Supplier<DataSource>): TestWatcher() {
     }
 }
 
-class MyClassRule(dsp: Supplier<DataSource>) : ExternalResource() {
+class SqlResource(dsp: Supplier<DataSource>) : ExternalResource() {
 
     var sqlBefore: SqlBefore? = null
     var sqlAfter: SqlAfter? = null
@@ -84,7 +84,7 @@ class MyClassRule(dsp: Supplier<DataSource>) : ExternalResource() {
 
 open class KhatTests {
 
-    Rule
+    @Rule
     public fun getSql(): SqlTest = _sql
     val _sql = SqlTest(Companion.dataSource)
 
@@ -112,6 +112,6 @@ open class KhatTests {
         }
 
         @ClassRule
-        val classSql: MyClassRule = MyClassRule(dataSource)
+        val classSql: SqlResource = SqlResource(dataSource)
     }
 }
