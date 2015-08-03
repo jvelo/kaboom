@@ -1,13 +1,9 @@
 package khat
 
-import javassist.Modifier
-import javassist.util.proxy.MethodFilter
-import javassist.util.proxy.MethodHandler
 import org.junit.Assert
 import org.junit.Before
 import java.sql.ResultSet
 import org.junit.Test as test
-import javassist.util.proxy.ProxyFactory
 import java.lang.reflect.Method
 import java.math.BigDecimal
 import java.sql.Timestamp
