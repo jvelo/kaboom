@@ -7,12 +7,12 @@ import java.lang.annotation.Target
 
 Retention(RetentionPolicy.RUNTIME)
 Target(ElementType.TYPE)
-annotation class table(val name: String = "")
+public annotation class table(val name: String = "")
 
 Retention(RetentionPolicy.RUNTIME)
 Target(ElementType.PARAMETER)
-annotation class column(val name: String)
+public annotation class column(val name: String)
 
 Retention(RetentionPolicy.RUNTIME)
 Target(ElementType.TYPE)
-annotation class filter(val where: String)
+public annotation class filter(val where: String)
