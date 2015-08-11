@@ -12,10 +12,10 @@ import kotlin.reflect.jvm.java
 suppress("UNCHECKED_CAST")
 open class Dao<out M: Any, in K>(
     val dataSource: Supplier<DataSource>,
-    val customMapper: ResultSetMapper<out M>? = null
+    val customMapper: ResultSetMapper<M>? = null
 ) {
 
-    val mapper: ResultSetMapper<out M> by Delegates.lazy {
+    val mapper: ResultSetMapper<M> by Delegates.lazy {
         customMapper ?: DataClassConstructorMapper(getModelClass())
     }
 
@@ -26,7 +26,7 @@ open class Dao<out M: Any, in K>(
                 ?: getModelClass().getSimpleName().toLowerCase()
     }
 
-    fun query(): QueryBuilder<out M> {
+    fun query(): QueryBuilder<M> {
         return QueryBuilder(dataSource, mapper, Query(select = "select * from ${tableName}", where = getFilterWhere()))
     }
 

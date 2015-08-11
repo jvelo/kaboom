@@ -14,7 +14,7 @@ data class Query(
         val arguments: List<Any> = listOf()
 )
 
-class QueryBuilder<M: Any>(
+class QueryBuilder<out M: Any>(
         val dataSource: Supplier<DataSource>,
         val mapper: ResultSetMapper<M>,
         val query: Query
