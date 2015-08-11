@@ -16,7 +16,7 @@ import kotlin.reflect.KClass
 import kotlin.reflect.jvm.internal.KClassImpl
 import kotlin.reflect.jvm.java
 
-interface ResultSetMapper<M: Any> {
+interface ResultSetMapper<out M: Any> {
     fun map(rs: ResultSet): M
 }
 
