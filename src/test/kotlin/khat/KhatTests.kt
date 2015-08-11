@@ -37,7 +37,7 @@ class SqlTest(dsp: Supplier<DataSource>): TestWatcher() {
         val sqlBefore = description?.getAnnotation(javaClass<SqlBefore>());
         if (sqlBefore != null) {
             val statement = dataSource.getConnection().createStatement()
-            statement.execute(sqlBefore!!.sql)
+            statement.execute(sqlBefore.sql)
         }
     }
 
@@ -45,7 +45,7 @@ class SqlTest(dsp: Supplier<DataSource>): TestWatcher() {
         val sqlAfter = description?.getAnnotation(javaClass<SqlAfter>());
         if (sqlAfter != null) {
             val statement = dataSource.getConnection().createStatement()
-            statement.execute(sqlAfter!!.sql)
+            statement.execute(sqlAfter.sql)
         }
     }
 }

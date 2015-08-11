@@ -16,7 +16,7 @@ import kotlin.reflect.KClass
 import kotlin.reflect.jvm.internal.KClassImpl
 import kotlin.reflect.jvm.java
 
-interface ResultSetMapper<M> {
+interface ResultSetMapper<M: Any> {
     fun map(rs: ResultSet): M
 }
 
@@ -36,16 +36,16 @@ fun ResultSet.get(key: String, type: Class<*>): Any? = when {
     type.isAssignableFrom(javaClass<Time>()) -> this.getTime(key)
     type.isAssignableFrom(javaClass<Date>()) -> this.getDate(key)
     type.isAssignableFrom(javaClass<String>()) -> this.getString(key)
+    // TODO enums
     else -> this.get(key)
 }
 
-class DataClassConstructorMapper<M>(val modelClass: java.lang.Class<M>)
-: ResultSetMapper<M> {
+class DataClassConstructorMapper<M>(val modelClass: java.lang.Class<M>) : ResultSetMapper<M> {
 
     class ColumnField(
-            val fieldName: String,
-            val fieldClass: Class<*>,
-            val columnName: String? = null
+        val fieldName: String,
+        val fieldClass: Class<*>,
+        val columnName: String? = null
     )
 
     private val constructor: Constructor<M>
@@ -89,9 +89,7 @@ class DataClassConstructorMapper<M>(val modelClass: java.lang.Class<M>)
         val annotations = constructor.getParameterAnnotations()[index]
         return annotations?.singleOrNull {
             it?.annotationType()?.equals(javaClass<column>()) ?: false
-        }?.let {
-            (it as column).name
-        }
+        }?.let { (it as column).name }
     }
 
 }

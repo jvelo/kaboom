@@ -1,10 +1,13 @@
 package khat
 
+import khat.reflection.findAnnotationHierarchy
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import java.util.function.Supplier
 import javax.sql.DataSource
 import kotlin.properties.Delegates
+import kotlin.reflect.KClass
+import kotlin.reflect.jvm.java
 
 suppress("UNCHECKED_CAST")
 open class Dao<M: Any, in K>(
@@ -19,12 +22,15 @@ open class Dao<M: Any, in K>(
     val tableName: String
 
     init {
-        tableName = getTableAnnotation()?.let { it.name } ?: getModelClass().getSimpleName().toLowerCase()
+        tableName = getModelClass().findAnnotationHierarchy(javaClass<table>())?.let { it.name }
+                ?: getModelClass().getSimpleName().toLowerCase()
     }
 
     fun query(): QueryBuilder<M> {
         return QueryBuilder(dataSource, mapper, Query(select = "select * from ${tableName}", where = getFilterWhere()))
     }
+
+    fun countAll(): Long = query().select("select count(*) from ${tableName}").asCount()
 
     fun withId(id: K): M? = query().where("id = ?").argument(id).single()
 
@@ -49,8 +55,8 @@ open class Dao<M: Any, in K>(
 
     private fun getKeyType(): Type = getParametrizedTypes().get(1)
 
-    private fun getTableAnnotation() = getModelClass().getAnnotationsByType(javaClass<table>()).firstOrNull()
-
-    private fun getFilterWhere() = getModelClass().getAnnotationsByType(javaClass<filter>()).firstOrNull()
-            ?.let { listOf(it.where) } ?: listOf<String>()
+    private fun getFilterWhere() =
+        getModelClass().findAnnotationHierarchy(javaClass<filter>())?.let { listOf(it.where) } ?: listOf<String>()
 }
+
+

@@ -14,24 +14,34 @@ data class Query(
         val arguments: List<Any> = listOf()
 )
 
-class QueryBuilder<M>(val dataSource: Supplier<DataSource>, val mapper: ResultSetMapper<M>, val query: Query) {
+class QueryBuilder<M: Any>(
+        val dataSource: Supplier<DataSource>,
+        val mapper: ResultSetMapper<M>,
+        val query: Query
+) {
 
     val logger = LoggerFactory.getLogger("sql")
 
-    fun where(where: String) = QueryBuilder<M>(dataSource, mapper,
-            query.copy(where = query.where.plus(where)))
+    fun select(select: String) =
+            QueryBuilder<M>(dataSource, mapper, query.copy(select = select))
 
-    fun limit(limit: Long) = QueryBuilder<M>(dataSource, mapper, query.copy(limit = limit))
+    fun where(where: String) =
+            QueryBuilder<M>(dataSource, mapper, query.copy(where = query.where.plus(where)))
 
-    fun offset(offset: Long) = QueryBuilder<M>(dataSource, mapper, query.copy(offset = offset))
+    fun limit(limit: Long) =
+            QueryBuilder<M>(dataSource, mapper, query.copy(limit = limit))
 
-    fun order(order: String) = QueryBuilder<M>(dataSource, mapper, query.copy(order = order))
+    fun offset(offset: Long) =
+            QueryBuilder<M>(dataSource, mapper, query.copy(offset = offset))
 
-    fun argument(argument: Any) = QueryBuilder<M>(dataSource, mapper,
-            query.copy(arguments = query.arguments.plus(argument)))
+    fun order(order: String) =
+            QueryBuilder<M>(dataSource, mapper, query.copy(order = order))
 
-    fun arguments(vararg arguments: Any) = QueryBuilder<M>(dataSource, mapper,
-            query.copy(arguments = query.arguments.plus(arguments)))
+    fun argument(argument: Any) =
+            QueryBuilder<M>(dataSource, mapper, query.copy(arguments = query.arguments.plus(argument)))
+
+    fun arguments(vararg arguments: Any) =
+            QueryBuilder<M>(dataSource, mapper, query.copy(arguments = query.arguments.plus(arguments)))
 
     fun execute(): List<M> {
         val rs = getResultSet()
@@ -42,13 +52,23 @@ class QueryBuilder<M>(val dataSource: Supplier<DataSource>, val mapper: ResultSe
         return result
     }
 
-    suppress("BASE_WITH_NULLABLE_UPPER_BOUND")
     fun single(): M? {
         val rs = getResultSet()
         if (!rs.next()) {
             return null
         } else {
             return this.mapper.map(rs)
+        }
+    }
+
+    fun asCount(): Long = asType { resultSet -> resultSet.getLong(1) }!!
+
+    fun <T: Any> asType(f: (ResultSet) -> T): T? {
+        val rs = getResultSet()
+        if (!rs.next()) {
+            return null
+        } else {
+            return f(rs)
         }
     }
 
