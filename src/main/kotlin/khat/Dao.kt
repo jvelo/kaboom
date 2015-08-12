@@ -1,6 +1,6 @@
 package khat
 
-import khat.reflection.findAnnotationHierarchy
+import khat.reflection.findAnnotationInHierarchy
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import java.util.function.Supplier
@@ -22,7 +22,7 @@ open class Dao<out M: Any, in K>(
     val tableName: String
 
     init {
-        tableName = getModelClass().findAnnotationHierarchy(javaClass<table>())?.let { it.name }
+        tableName = getModelClass().findAnnotationInHierarchy(javaClass<table>())?.let { it.name }
                 ?: getModelClass().getSimpleName().toLowerCase()
     }
 
@@ -56,7 +56,7 @@ open class Dao<out M: Any, in K>(
     private fun getKeyType(): Type = getParametrizedTypes().get(1)
 
     private fun getFilterWhere() =
-        getModelClass().findAnnotationHierarchy(javaClass<filter>())?.let { listOf(it.where) } ?: listOf<String>()
+        getModelClass().findAnnotationInHierarchy(javaClass<filter>())?.let { listOf(it.where) } ?: listOf<String>()
 }
 
 
