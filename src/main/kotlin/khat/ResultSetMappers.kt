@@ -16,10 +16,6 @@ import kotlin.reflect.KClass
 import kotlin.reflect.jvm.internal.KClassImpl
 import kotlin.reflect.jvm.java
 
-interface ResultSetMapper<out M: Any> {
-    fun map(rs: ResultSet): M
-}
-
 fun <T: Any> ResultSet.get(key: String, type: KClass<T>): Any? = this.get(key, type.java)
 
 fun ResultSet.get(key: String, type: Class<*>): Any? = when {
@@ -39,6 +35,8 @@ fun ResultSet.get(key: String, type: Class<*>): Any? = when {
     // TODO enums
     else -> this.get(key)
 }
+
+interface ResultSetMapper<out M: Any> : (ResultSet) -> M
 
 class DataClassConstructorMapper<M>(val modelClass: java.lang.Class<M>) : ResultSetMapper<M> {
 
@@ -67,7 +65,7 @@ class DataClassConstructorMapper<M>(val modelClass: java.lang.Class<M>) : Result
                 .mapIndexed { index, field -> ColumnField(field.getName(), field.getType(), getColumnName(index)) }
     }
 
-    override fun map(rs: ResultSet): M {
+    override fun invoke(rs: ResultSet): M {
         val args = fields.map {
             val value = rs.get(it.columnName ?: it.fieldName, it.fieldClass)
             if (value != null) {

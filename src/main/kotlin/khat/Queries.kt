@@ -43,33 +43,28 @@ class QueryBuilder<out M: Any>(
     fun arguments(vararg arguments: Any) =
             QueryBuilder<M>(dataSource, mapper, query.copy(arguments = query.arguments.plus(arguments)))
 
-    fun execute(): List<M> {
-        val rs = getResultSet()
-        val result = arrayListOf<M>()
-        while (rs.next()) {
-            result.add(this.mapper.map(rs))
-        }
-        return result
-    }
+    fun execute(): List<M> = map(this.mapper)
 
-    fun single(): M? {
-        val rs = getResultSet()
-        if (!rs.next()) {
-            return null
-        } else {
-            return this.mapper.map(rs)
-        }
-    }
+    fun single(): M? = one(this.mapper)
 
-    fun asCount(): Long = asType { resultSet -> resultSet.getLong(1) }!!
+    fun asCount(): Long = one { resultSet -> resultSet.getLong(1) }!!
 
-    fun <T: Any> asType(f: (ResultSet) -> T): T? {
+    fun <T: Any> one(f: (ResultSet) -> T): T? {
         val rs = getResultSet()
         if (!rs.next()) {
             return null
         } else {
             return f(rs)
         }
+    }
+
+    fun <T: Any> map(f: (ResultSet) -> T) : List<T> {
+        val rs = getResultSet()
+        val result = arrayListOf<T>()
+        while (rs.next()) {
+            result.add(f(rs))
+        }
+        return result
     }
 
     private fun getResultSet(): ResultSet {

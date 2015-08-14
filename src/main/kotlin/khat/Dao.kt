@@ -26,15 +26,15 @@ open class Dao<out M: Any, in K>(
                 ?: getModelClass().getSimpleName().toLowerCase()
     }
 
-    fun query(): QueryBuilder<M> {
-        return QueryBuilder(dataSource, mapper, Query(select = "select * from ${tableName}", where = getFilterWhere()))
-    }
+    fun query(): QueryBuilder<M> =
+        QueryBuilder(dataSource, mapper, Query(select = "select * from ${tableName}", where = getFilterWhere()))
+
 
     fun countAll(): Long = query().select("select count(*) from ${tableName}").asCount()
 
     fun withId(id: K): M? = query().where("id = ?").argument(id).single()
 
-    fun findWhere(sql: String, vararg args: Any): List<M> {
+    fun where(sql: String, vararg args: Any): List<M> {
         val query = query().where(sql)
         val bound = args.fold(query, { query, argument -> query.argument(argument) })
         return bound.execute()

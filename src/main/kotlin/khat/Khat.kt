@@ -74,7 +74,7 @@ fun main(args: Array<String>) {
 
     val logger = LoggerFactory.getLogger(::main.javaClass);
 
-    val users = Users.findWhere("name = ?", "Jerome")
+    val users = Users.where("name = ?", "Jerome")
     users.map({ user ->
         println(user)
     })
