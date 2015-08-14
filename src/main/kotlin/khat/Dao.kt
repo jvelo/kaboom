@@ -3,19 +3,37 @@ package khat
 import khat.reflection.findAnnotationInHierarchy
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
+import java.sql.ResultSet
 import java.util.function.Supplier
 import javax.sql.DataSource
 import kotlin.properties.Delegates
 import kotlin.reflect.KClass
 import kotlin.reflect.jvm.java
 
+// WIP
+interface DaoInterface <M: Any, in K> {
+    fun query(): QueryBuilder<M>
+
+    fun withId(id: K): M?
+
+    fun where(sql: String, vararg args: Any): List<M>
+
+    fun count(): Long
+    fun count(sql: String, vararg args: Any): Long
+
+    fun insert(entity: M): Unit
+    fun insertAndGet(entity: M): M?
+
+    fun update(entity: M): Unit
+}
+
 suppress("UNCHECKED_CAST")
 open class Dao<out M: Any, in K>(
     val dataSource: Supplier<DataSource>,
-    val customMapper: ResultSetMapper<M>? = null
+    val customMapper: ((ResultSet) -> M)? = null
 ) {
 
-    val mapper: ResultSetMapper<M> by Delegates.lazy {
+    val mapper: (ResultSet) -> M by Delegates.lazy {
         customMapper ?: DataClassConstructorMapper(getModelClass())
     }
 
@@ -29,8 +47,12 @@ open class Dao<out M: Any, in K>(
     fun query(): QueryBuilder<M> =
         QueryBuilder(dataSource, mapper, Query(select = "select * from ${tableName}", where = getFilterWhere()))
 
-
-    fun countAll(): Long = query().select("select count(*) from ${tableName}").asCount()
+    fun count(): Long = query().select("select count(*) from ${tableName}").asCount()
+    fun count(sql: String, vararg args: Any): Long {
+        val query = query().select("select count(*) from ${tableName}").where(sql)
+        val bound = args.fold(query, { query, argument -> query.argument(argument) })
+        return bound.asCount()
+    }
 
     fun withId(id: K): M? = query().where("id = ?").argument(id).single()
 

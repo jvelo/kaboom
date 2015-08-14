@@ -41,8 +41,8 @@ public class DaoTests : KhatTests() {
     }
 
     @Test fun testMapper() {
-        Assert.assertEquals(4, Companion.Persons.countAll())
-        Assert.assertEquals(2, Companion.Parisians.countAll())
+        Assert.assertEquals(4, Companion.Persons.count())
+        Assert.assertEquals(2, Companion.Parisians.count())
     }
 
 }

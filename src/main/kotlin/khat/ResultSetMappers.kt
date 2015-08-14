@@ -36,9 +36,7 @@ fun ResultSet.get(key: String, type: Class<*>): Any? = when {
     else -> this.get(key)
 }
 
-interface ResultSetMapper<out M: Any> : (ResultSet) -> M
-
-class DataClassConstructorMapper<M>(val modelClass: java.lang.Class<M>) : ResultSetMapper<M> {
+class DataClassConstructorMapper<out M : Any>(val modelClass: java.lang.Class<out M>) : (ResultSet) -> M {
 
     class ColumnField(
         val fieldName: String,

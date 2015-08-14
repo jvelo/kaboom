@@ -16,7 +16,7 @@ data class Query(
 
 class QueryBuilder<out M: Any>(
         val dataSource: Supplier<DataSource>,
-        val mapper: ResultSetMapper<M>,
+        val mapper: (ResultSet) -> M,
         val query: Query
 ) {
 
