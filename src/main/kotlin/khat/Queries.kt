@@ -15,7 +15,7 @@ data class Query(
 )
 
 class QueryBuilder<out M: Any>(
-        val dataSource: Supplier<DataSource>,
+        val dataSource: () -> DataSource,
         val mapper: (ResultSet) -> M,
         val query: Query
 ) {
@@ -70,7 +70,7 @@ class QueryBuilder<out M: Any>(
     private fun getResultSet(): ResultSet {
         val sql = serialize()
         logger.info(sql)
-        val connection = dataSource.get().getConnection()
+        val connection = dataSource().getConnection()
         val statement = connection.prepareStatement(sql)
         query.arguments.forEachIndexed { i, argument ->
             statement.setObject(i + 1, argument)

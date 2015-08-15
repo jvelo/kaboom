@@ -34,5 +34,5 @@ public class ResultSetTests : KhatTests() {
     }
 
     private fun executeQuery(sql: String): ResultSet =
-        KhatTests.dataSource.get().getConnection().createStatement().executeQuery(sql)
+        KhatTests.dataSource().getConnection().createStatement().executeQuery(sql)
 }

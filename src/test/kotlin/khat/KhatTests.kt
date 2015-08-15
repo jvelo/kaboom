@@ -25,12 +25,12 @@ annotation class SqlBefore(val sql: String = "SELECT 1")
 @Target(ElementType.TYPE)
 annotation class SqlAfter(val sql: String = "SELECT 1")
 
-class SqlTest(dsp: Supplier<DataSource>): TestWatcher() {
+class SqlTest(dsp: () -> DataSource): TestWatcher() {
 
     val dataSource: DataSource
 
     init {
-        dataSource = dsp.get()
+        dataSource = dsp()
     }
 
     override fun starting(description: Description?) {
@@ -50,7 +50,7 @@ class SqlTest(dsp: Supplier<DataSource>): TestWatcher() {
     }
 }
 
-class SqlResource(dsp: Supplier<DataSource>) : ExternalResource() {
+class SqlResource(dsp: () -> DataSource) : ExternalResource() {
 
     var sqlBefore: SqlBefore? = null
     var sqlAfter: SqlAfter? = null
@@ -58,7 +58,7 @@ class SqlResource(dsp: Supplier<DataSource>) : ExternalResource() {
     val dataSource: DataSource
 
     init {
-        dataSource = dsp.get()
+        dataSource = dsp()
     }
 
     override fun apply(statement: Statement?, description: Description?): Statement? {
@@ -89,7 +89,7 @@ open class KhatTests {
     val _sql = SqlTest(Companion.dataSource)
 
     companion object {
-        val dataSource = object: Supplier<DataSource> {
+        val dataSource = object: () -> DataSource {
             private val source: PGPoolingDataSource
 
             init {
@@ -106,7 +106,7 @@ open class KhatTests {
                 source setMaxConnections 10
             }
 
-            override fun get(): DataSource {
+            override fun invoke(): DataSource {
                 return this.source
             }
         }

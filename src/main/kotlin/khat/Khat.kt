@@ -1,17 +1,16 @@
 package khat
 
-import khat.types.Types
+import khat.dao.Dao
 import khat.types.registerDefaultTypesMappers
 import org.postgresql.ds.PGPoolingDataSource
 import org.slf4j.LoggerFactory
 import java.util.UUID
-import java.util.function.Supplier
 import javax.json.JsonObject
 import javax.json.JsonString
 import javax.sql.DataSource
 import kotlin.properties.Delegates
 
-object DataSourceSupplier : Supplier<DataSource> {
+object DataSourceSupplier : () -> DataSource {
     private val source: PGPoolingDataSource
 
     init {
@@ -28,7 +27,7 @@ object DataSourceSupplier : Supplier<DataSource> {
         source setMaxConnections 10
     }
 
-    override fun get(): DataSource {
+    override fun invoke(): DataSource {
         return this.source
     }
 }
@@ -64,8 +63,8 @@ data class Test(json: Map<String, Any?>) {
     }
 }
 
-object Users : Dao<User, Int>(DataSourceSupplier)
 
+object Users: Dao<User, Int>(DataSourceSupplier)
 object Documents : Dao<Document, UUID>(DataSourceSupplier)
 
 fun main(args: Array<String>) {
