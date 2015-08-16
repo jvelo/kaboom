@@ -47,7 +47,7 @@ class QueryBuilder<out M: Any>(
 
     fun single(): M? = one(this.mapper)
 
-    fun asCount(): Long = one { resultSet -> resultSet.getLong(1) }!!
+    fun count(): Long = one { resultSet -> resultSet.getLong(1) }!!
 
     fun <T: Any> one(f: (ResultSet) -> T): T? {
         val rs = getResultSet()
@@ -69,12 +69,12 @@ class QueryBuilder<out M: Any>(
 
     private fun getResultSet(): ResultSet {
         val sql = serialize()
-        logger.info(sql)
         val connection = dataSource().getConnection()
         val statement = connection.prepareStatement(sql)
         query.arguments.forEachIndexed { i, argument ->
             statement.setObject(i + 1, argument)
         }
+        logger.info(sql, query.arguments)
         val rs = statement.executeQuery();
         return rs
     }

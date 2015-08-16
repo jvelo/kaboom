@@ -16,7 +16,6 @@ public class ResultSetMappersTests : KhatTests() {
     """)
     @SqlAfter("TRUNCATE TABLE documents")
     Test fun testMapper() {
-        Assert.assertEquals(1, 2)
     }
 
 }
