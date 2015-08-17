@@ -1,7 +1,7 @@
-package khat
+package kaboom
 
-import khat.dao.Dao
-import khat.dao.ReadDao
+import kaboom.dao.Dao
+import kaboom.dao.ReadDao
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test

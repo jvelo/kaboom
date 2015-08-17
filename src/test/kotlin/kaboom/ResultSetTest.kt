@@ -1,4 +1,4 @@
-package khat
+package kaboom
 
 import org.junit.Assert
 import org.junit.Before

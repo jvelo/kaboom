@@ -41,7 +41,7 @@ dependencies {
 }
 
 artifacts {
-    file('build/libs/khat.jar')
+    file('build/libs/kaboom.jar')
 }
 sourceSets {
     main.java.srcDirs += 'src/main/kotlin'

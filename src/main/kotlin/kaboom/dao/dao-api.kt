@@ -1,7 +1,7 @@
-package khat.dao
+package kaboom.dao
 
-import khat.dao.ConcreteReadDao
-import khat.QueryBuilder
+import kaboom.dao.ConcreteReadDao
+import kaboom.QueryBuilder
 import java.sql.ResultSet
 import javax.sql.DataSource
 

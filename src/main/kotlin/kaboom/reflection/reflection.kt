@@ -1,6 +1,6 @@
-package khat.reflection
+package kaboom.reflection
 
-import khat.table
+import kaboom.table
 import kotlin.reflect.KClass
 import kotlin.reflect.jvm.java
 

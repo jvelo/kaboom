@@ -1,7 +1,7 @@
-package khat
+package kaboom
 
-import khat.types.Types
-import khat.types.registerDefaultTypesMappers
+import kaboom.types.Types
+import kaboom.types.registerDefaultTypesMappers
 import java.io.StringReader
 import java.lang.reflect.Constructor
 import java.math.BigDecimal

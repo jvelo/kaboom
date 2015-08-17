@@ -1,7 +1,7 @@
-package khat
+package kaboom
 
-import khat.dao.Dao
-import khat.types.registerDefaultTypesMappers
+import kaboom.dao.Dao
+import kaboom.types.registerDefaultTypesMappers
 import org.postgresql.ds.PGPoolingDataSource
 import org.slf4j.LoggerFactory
 import java.util.UUID

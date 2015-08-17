@@ -1,4 +1,4 @@
-package khat.types
+package kaboom.types
 
 import java.io.StringReader
 import java.util.*

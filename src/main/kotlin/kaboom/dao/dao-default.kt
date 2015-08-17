@@ -1,8 +1,8 @@
-package khat.dao
+package kaboom.dao
 
-import khat.*
-import khat.dao.ReadDao
-import khat.reflection.findAnnotationInHierarchy
+import kaboom.*
+import kaboom.dao.ReadDao
+import kaboom.reflection.findAnnotationInHierarchy
 import java.io.Serializable
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
