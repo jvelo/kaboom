@@ -1,11 +1,9 @@
 package kaboom
 
 import kaboom.dao.Dao
-import kaboom.dao.ReadDao
 import org.junit.Assert
-import org.junit.Before
 import org.junit.Test
-import java.util.*
+import java.util.UUID
 import javax.json.JsonObject
 import javax.json.JsonString
 import kotlin.properties.Delegates

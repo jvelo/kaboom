@@ -1,6 +1,5 @@
 package kaboom.dao
 
-import kaboom.dao.ConcreteReadDao
 import kaboom.QueryBuilder
 import java.sql.ResultSet
 import javax.sql.DataSource

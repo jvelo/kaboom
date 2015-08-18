@@ -1,19 +1,14 @@
 package kaboom
 
 import kaboom.types.Types
-import kaboom.types.registerDefaultTypesMappers
-import java.io.StringReader
 import java.lang.reflect.Constructor
 import java.math.BigDecimal
 import java.sql.ResultSet
 import java.sql.Time
 import java.sql.Timestamp
-import java.util.*
-import javax.json.Json
-import javax.json.JsonObject
+import java.util.Date
 import kotlin.jdbc.get
 import kotlin.reflect.KClass
-import kotlin.reflect.jvm.internal.KClassImpl
 import kotlin.reflect.jvm.java
 
 fun <T: Any> ResultSet.get(key: String, type: KClass<T>): Any? = this.get(key, type.java)

@@ -1,9 +1,7 @@
 package kaboom
 
-import org.junit.Assert
 import org.junit.ClassRule
 import org.junit.Rule
-import org.junit.Test
 import org.junit.rules.ExternalResource
 import org.junit.rules.TestWatcher
 import org.junit.runner.Description
@@ -13,9 +11,7 @@ import java.lang.annotation.ElementType
 import java.lang.annotation.Retention
 import java.lang.annotation.RetentionPolicy
 import java.lang.annotation.Target
-import java.util.function.Supplier
 import javax.sql.DataSource
-import kotlin.platform.platformStatic
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)

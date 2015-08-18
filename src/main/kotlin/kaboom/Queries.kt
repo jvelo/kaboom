@@ -2,7 +2,6 @@ package kaboom
 
 import org.slf4j.LoggerFactory
 import java.sql.ResultSet
-import java.util.function.Supplier
 import javax.sql.DataSource
 
 data class Query(

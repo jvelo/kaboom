@@ -1,14 +1,11 @@
 package kaboom
 
 import org.junit.Assert
-import org.junit.Before
-import java.sql.ResultSet
-import org.junit.Test as test
-import java.lang.reflect.Method
 import java.math.BigDecimal
+import java.sql.ResultSet
 import java.sql.Timestamp
 import kotlin.jdbc.get
-import kotlin.reflect.KClass
+import org.junit.Test as test
 
 public class ResultSetTests : KhatTests() {
 

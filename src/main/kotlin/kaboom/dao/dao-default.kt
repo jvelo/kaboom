@@ -1,17 +1,12 @@
 package kaboom.dao
 
 import kaboom.*
-import kaboom.dao.ReadDao
 import kaboom.reflection.findAnnotationInHierarchy
-import java.io.Serializable
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import java.sql.ResultSet
-import java.util.function.Supplier
 import javax.sql.DataSource
 import kotlin.properties.Delegates
-import kotlin.reflect.KClass
-import kotlin.reflect.jvm.java
 
 public open class ConcreteTableMappingAware<M : Any, K>(
         override val dataSource: () -> DataSource,
