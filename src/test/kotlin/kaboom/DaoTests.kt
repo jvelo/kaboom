@@ -33,11 +33,11 @@ import kotlin.properties.Delegates
     INSERT INTO document VALUES ('46b8e6c5-3637-4aa5-aaa6-c5d3809d1e52', '{"name": "Robert", "city": "New-York"}');
 """)
 @SqlAfter("DROP TABLE document")
-public class DaoTests : KhatTests() {
+public class DaoTests : KaboomTests() {
 
     companion object {
-        object Persons : Dao<Person, UUID>(KhatTests.dataSource)
-        object Parisians : Dao<Parisian, UUID>(KhatTests.dataSource)
+        object Persons : Dao<Person, UUID>(KaboomTests.dataSource)
+        object Parisians : Dao<Parisian, UUID>(KaboomTests.dataSource)
     }
 
     @Test fun testMapper() {

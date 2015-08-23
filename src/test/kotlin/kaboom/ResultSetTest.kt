@@ -7,7 +7,7 @@ import java.sql.Timestamp
 import kotlin.jdbc.get
 import org.junit.Test as test
 
-public class ResultSetTests : KhatTests() {
+public class ResultSetTests : KaboomTests() {
 
     test fun test_get_boolean() {
         val rs = executeQuery("select TRUE as value")
@@ -31,5 +31,5 @@ public class ResultSetTests : KhatTests() {
     }
 
     private fun executeQuery(sql: String): ResultSet =
-        KhatTests.dataSource().getConnection().createStatement().executeQuery(sql)
+        KaboomTests.dataSource().getConnection().createStatement().executeQuery(sql)
 }

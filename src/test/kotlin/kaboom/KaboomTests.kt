@@ -78,7 +78,7 @@ class SqlResource(dsp: () -> DataSource) : ExternalResource() {
     }
 }
 
-open class KhatTests {
+open class KaboomTests {
 
     @Rule
     public fun getSql(): SqlTest = _sql

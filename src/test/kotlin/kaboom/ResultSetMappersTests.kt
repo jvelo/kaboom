@@ -7,7 +7,7 @@ import org.junit.Test
     CREATE TABLE documents (id uuid, doc jsonb)
 """)
 @SqlAfter("DROP TABLE documents")
-public class ResultSetMappersTests : KhatTests() {
+public class ResultSetMappersTests : KaboomTests() {
 
     @SqlBefore("""
         INSERT INTO documents VALUES ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '{"a": "b", "c": 2}');
