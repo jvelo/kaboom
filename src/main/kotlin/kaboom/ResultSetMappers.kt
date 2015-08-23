@@ -6,7 +6,7 @@ import java.math.BigDecimal
 import java.sql.ResultSet
 import java.sql.Time
 import java.sql.Timestamp
-import java.util.Date
+import java.sql.Date
 import kotlin.jdbc.get
 import kotlin.reflect.KClass
 import kotlin.reflect.jvm.java
@@ -14,20 +14,20 @@ import kotlin.reflect.jvm.java
 fun <T: Any> ResultSet.get(key: String, type: KClass<T>): Any? = this.get(key, type.java)
 
 fun ResultSet.get(key: String, type: Class<*>): Any? = when {
-    this.wasNull() -> null
-    type.isAssignableFrom(javaClass<Boolean>()) -> this.getBoolean(key)
-    type.isAssignableFrom(javaClass<Byte>()) -> this.getByte(key)
-    type.isAssignableFrom(javaClass<Short>()) -> this.getShort(key)
-    type.isAssignableFrom(javaClass<Int>()) -> this.getInt(key)
-    type.isAssignableFrom(javaClass<Long>()) -> this.getLong(key)
-    type.isAssignableFrom(javaClass<Float>()) -> this.getFloat(key)
-    type.isAssignableFrom(javaClass<Double>()) -> this.getDouble(key)
-    type.isAssignableFrom(javaClass<BigDecimal>()) -> this.getBigDecimal(key)
-    type.isAssignableFrom(javaClass<Timestamp>()) -> this.getTimestamp(key)
-    type.isAssignableFrom(javaClass<Time>()) -> this.getTime(key)
-    type.isAssignableFrom(javaClass<Date>()) -> this.getDate(key)
-    type.isAssignableFrom(javaClass<String>()) -> this.getString(key)
+    javaClass<Boolean>().isAssignableFrom(type) -> this.getBoolean(key)
+    javaClass<Byte>().isAssignableFrom(type) -> this.getByte(key)
+    javaClass<Short>().isAssignableFrom(type) -> this.getShort(key)
+    javaClass<Int>().isAssignableFrom(type) -> this.getInt(key)
+    javaClass<Long>().isAssignableFrom(type) -> this.getLong(key)
+    javaClass<Float>().isAssignableFrom(type) -> this.getFloat(key)
+    javaClass<Double>().isAssignableFrom(type) -> this.getDouble(key)
+    javaClass<BigDecimal>().isAssignableFrom(type) -> this.getBigDecimal(key)
+    javaClass<Timestamp>().isAssignableFrom(type) -> this.getTimestamp(key)
+    javaClass<Time>().isAssignableFrom(type) -> this.getTime(key)
+    javaClass<Date>().isAssignableFrom(type) -> this.getDate(key)
+    javaClass<String>().isAssignableFrom(type) -> this.getString(key)
     // TODO enums
+    //this.wasNull() -> null //(problem in sqlite)
     else -> this.get(key)
 }
 
