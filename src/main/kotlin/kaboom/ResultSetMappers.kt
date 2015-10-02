@@ -14,23 +14,24 @@ import kotlin.reflect.jvm.java
 fun <T: Any> ResultSet.get(key: String, type: KClass<T>): Any? = this.get(key, type.java)
 
 fun ResultSet.get(key: String, type: Class<*>): Any? = when {
-    javaClass<Boolean>().isAssignableFrom(type) -> this.getBoolean(key)
-    javaClass<Byte>().isAssignableFrom(type) -> this.getByte(key)
-    javaClass<Short>().isAssignableFrom(type) -> this.getShort(key)
-    javaClass<Int>().isAssignableFrom(type) -> this.getInt(key)
-    javaClass<Long>().isAssignableFrom(type) -> this.getLong(key)
-    javaClass<Float>().isAssignableFrom(type) -> this.getFloat(key)
-    javaClass<Double>().isAssignableFrom(type) -> this.getDouble(key)
-    javaClass<BigDecimal>().isAssignableFrom(type) -> this.getBigDecimal(key)
-    javaClass<Timestamp>().isAssignableFrom(type) -> this.getTimestamp(key)
-    javaClass<Time>().isAssignableFrom(type) -> this.getTime(key)
-    javaClass<Date>().isAssignableFrom(type) -> this.getDate(key)
-    javaClass<String>().isAssignableFrom(type) -> this.getString(key)
+    Boolean::class.java.isAssignableFrom(type) -> this.getBoolean(key)
+    Byte::class.java.isAssignableFrom(type) -> this.getByte(key)
+    Short::class.java.isAssignableFrom(type) -> this.getShort(key)
+    Int::class.java.isAssignableFrom(type) -> this.getInt(key)
+    Long::class.java.isAssignableFrom(type) -> this.getLong(key)
+    Float::class.java.isAssignableFrom(type) -> this.getFloat(key)
+    Double::class.java.isAssignableFrom(type) -> this.getDouble(key)
+    BigDecimal::class.java.isAssignableFrom(type) -> this.getBigDecimal(key)
+    Timestamp::class.java.isAssignableFrom(type) -> this.getTimestamp(key)
+    Time::class.java.isAssignableFrom(type) -> this.getTime(key)
+    Date::class.java.isAssignableFrom(type) -> this.getDate(key)
+    String::class.java.isAssignableFrom(type) -> this.getString(key)
     // TODO enums
     //this.wasNull() -> null //(problem in sqlite)
     else -> this.get(key)
 }
 
+@Suppress("UNCHECKED_CAST")
 class DataClassConstructorMapper<out M : Any>(val modelClass: java.lang.Class<out M>) : (ResultSet) -> M {
 
     class ColumnField(
@@ -42,9 +43,8 @@ class DataClassConstructorMapper<out M : Any>(val modelClass: java.lang.Class<ou
     private val constructor: Constructor<M>
     private val fields: List<ColumnField>
 
-    suppress("UNCHECKED_CAST")
     init {
-        val constructors = modelClass.getDeclaredConstructors()
+        val constructors = modelClass.declaredConstructors
 
         if (constructors.size() < 1) {
             throw IllegalStateException("Could not find model constructor")
@@ -52,10 +52,10 @@ class DataClassConstructorMapper<out M : Any>(val modelClass: java.lang.Class<ou
 
         constructor = constructors[0] as Constructor<M>
 
-        fields = modelClass.getDeclaredFields()
-                .filterNot { it.getName().indexOf('$') >= 0 }
-                .take(constructor.getGenericParameterTypes().size())
-                .mapIndexed { index, field -> ColumnField(field.getName(), field.getType(), getColumnName(index)) }
+        fields = modelClass.declaredFields
+                .filterNot { it.name.indexOf('$') >= 0 }
+                .take(constructor.genericParameterTypes.size())
+                .mapIndexed { index, field -> ColumnField(field.name, field.type, getColumnName(index)) }
     }
 
     override fun invoke(rs: ResultSet): M {
@@ -71,15 +71,15 @@ class DataClassConstructorMapper<out M : Any>(val modelClass: java.lang.Class<ou
             return constructor.newInstance(*args)
         } catch(e: IllegalArgumentException) {
             throw RuntimeException(
-                "Failed to invoke ${modelClass.getCanonicalName()} constructor.\nArguments:\n" +
-                    args.map { it -> "- " + it?.javaClass?.getCanonicalName() + " : " + it }.joinToString("\n"), e)
+                "Failed to invoke ${modelClass.canonicalName} constructor.\nArguments:\n" +
+                    args.map { it -> "- " + it?.javaClass?.canonicalName + " : " + it }.joinToString("\n"), e)
         }
     }
 
     private fun getColumnName(index: Int): String? {
-        val annotations = constructor.getParameterAnnotations()[index]
+        val annotations = constructor.parameterAnnotations[index]
         return annotations?.singleOrNull {
-            it?.annotationType()?.equals(javaClass<column>()) ?: false
+            it?.annotationType()?.equals(column::class.java) ?: false
         }?.let { (it as column).name }
     }
 

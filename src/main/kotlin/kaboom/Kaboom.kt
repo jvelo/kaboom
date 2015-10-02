@@ -10,6 +10,8 @@ import javax.json.JsonString
 import javax.sql.DataSource
 import kotlin.properties.Delegates
 
+import kotlin.properties.get
+
 object DataSourceSupplier : () -> DataSource {
     private val source: PGPoolingDataSource
 
@@ -32,7 +34,7 @@ object DataSourceSupplier : () -> DataSource {
     }
 }
 
-table("users")
+@table("users")
 data class User(
         val id: Long,
         val name: String,
@@ -43,20 +45,20 @@ data class User(
 // insert into records values ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '{"a": "b", "c": 2}');
 // insert into records values ('3c75d791-a654-421c-b442-768a4748dff4', '{"toto":  "tata"}');
 
-table("records")
-filter("doc @> '{\"a\":\"b\"}'")
+@table("records")
+@filter("doc @> '{\"a\":\"b\"}'")
 data class Document(
         val id: UUID,
-        column("doc") val json: JsonObject
+        @column("doc") val json: JsonObject
 ) {
-    val a: JsonString by Delegates.mapVal(json)
+    val a: JsonString by json
 
     val b: String
         get() { return a.toString() }
 }
 
 data class Test(json: Map<String, Any?>) {
-    val bar: String by Delegates.mapVal(json)
+    val bar: String by json
 
     val foo by Delegates.blockingLazy {
         this.bar.length()

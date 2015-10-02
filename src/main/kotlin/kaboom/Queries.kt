@@ -68,7 +68,7 @@ class QueryBuilder<out M: Any>(
 
     private fun getResultSet(): ResultSet {
         val sql = serialize()
-        val connection = dataSource().getConnection()
+        val connection = dataSource().connection
         val statement = connection.prepareStatement(sql)
         query.arguments.forEachIndexed { i, argument ->
             statement.setObject(i + 1, argument)

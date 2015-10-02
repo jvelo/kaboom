@@ -7,18 +7,15 @@ import org.junit.rules.TestWatcher
 import org.junit.runner.Description
 import org.junit.runners.model.Statement
 import org.postgresql.ds.PGPoolingDataSource
-import java.lang.annotation.ElementType
-import java.lang.annotation.Retention
-import java.lang.annotation.RetentionPolicy
-import java.lang.annotation.Target
 import javax.sql.DataSource
+import kotlin.annotation.*
 
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
+@Retention(AnnotationRetention.RUNTIME)
+@Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION)
 annotation class SqlBefore(val sql: String = "SELECT 1")
 
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
+@Retention(AnnotationRetention.RUNTIME)
+@Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION)
 annotation class SqlAfter(val sql: String = "SELECT 1")
 
 class SqlTest(dsp: () -> DataSource): TestWatcher() {
@@ -30,17 +27,17 @@ class SqlTest(dsp: () -> DataSource): TestWatcher() {
     }
 
     override fun starting(description: Description?) {
-        val sqlBefore = description?.getAnnotation(javaClass<SqlBefore>());
+        val sqlBefore = description?.getAnnotation(SqlBefore::class.java);
         if (sqlBefore != null) {
-            val statement = dataSource.getConnection().createStatement()
+            val statement = dataSource.connection.createStatement()
             statement.execute(sqlBefore.sql)
         }
     }
 
     override fun finished(description: Description?) {
-        val sqlAfter = description?.getAnnotation(javaClass<SqlAfter>());
+        val sqlAfter = description?.getAnnotation(SqlAfter::class.java);
         if (sqlAfter != null) {
-            val statement = dataSource.getConnection().createStatement()
+            val statement = dataSource.connection.createStatement()
             statement.execute(sqlAfter.sql)
         }
     }
@@ -58,21 +55,21 @@ class SqlResource(dsp: () -> DataSource) : ExternalResource() {
     }
 
     override fun apply(statement: Statement?, description: Description?): Statement? {
-        sqlBefore = description?.getAnnotation(javaClass<SqlBefore>());
-        sqlAfter = description?.getAnnotation(javaClass<SqlAfter>());
+        sqlBefore = description?.getAnnotation(SqlBefore::class.java);
+        sqlAfter = description?.getAnnotation(SqlAfter::class.java);
         return super.apply(statement, description)
     }
 
     override fun before() {
         if (sqlBefore != null) {
-            val statement = dataSource.getConnection().createStatement()
+            val statement = dataSource.connection.createStatement()
             statement.execute(sqlBefore!!.sql)
         }
     }
 
     override fun after() {
         if (sqlAfter != null) {
-            val statement = dataSource.getConnection().createStatement()
+            val statement = dataSource.connection.createStatement()
             statement.execute(sqlAfter!!.sql)
         }
     }

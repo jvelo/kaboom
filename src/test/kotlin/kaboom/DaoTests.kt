@@ -6,23 +6,23 @@ import org.junit.Test
 import java.util.UUID
 import javax.json.JsonObject
 import javax.json.JsonString
-import kotlin.properties.Delegates
+import kotlin.properties.get
 
-@data class Document(
+data class Document(
         val id: UUID,
         val doc: JsonObject
 )
 
 @table("document")
-@data open public class Person(
+data open public class Person(
         val id: UUID,
         val doc: JsonObject
 ) {
-    val name: JsonString by Delegates.mapVal(doc)
+    val name: JsonString by doc
 }
 
 @filter("doc @> '{\"city\":\"Paris\"}'")
-@data public class Parisian(id: UUID, doc: JsonObject) : Person(id, doc) {}
+data public class Parisian(id: UUID, doc: JsonObject) : Person(id, doc) {}
 
 @SqlBefore("""
     DROP TABLE IF EXISTS document;

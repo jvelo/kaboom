@@ -1,18 +1,16 @@
 package kaboom
 
-import java.lang.annotation.ElementType
-import java.lang.annotation.Retention
-import java.lang.annotation.RetentionPolicy
-import java.lang.annotation.Target
+import kotlin.annotation.Retention
+import kotlin.annotation.Target
 
-Retention(RetentionPolicy.RUNTIME)
-Target(ElementType.TYPE)
+@Retention(AnnotationRetention.RUNTIME)
+@Target(AnnotationTarget.CLASS)
 public annotation class table(val name: String = "")
 
-Retention(RetentionPolicy.RUNTIME)
-Target(ElementType.PARAMETER)
+@Retention(AnnotationRetention.RUNTIME)
+@Target(AnnotationTarget.CLASS, AnnotationTarget.FIELD)
 public annotation class column(val name: String)
 
-Retention(RetentionPolicy.RUNTIME)
-Target(ElementType.TYPE)
+@Retention(AnnotationRetention.RUNTIME)
+@Target(AnnotationTarget.CLASS)
 public annotation class filter(val where: String)

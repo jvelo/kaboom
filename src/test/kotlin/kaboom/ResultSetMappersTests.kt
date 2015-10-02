@@ -14,7 +14,7 @@ public class ResultSetMappersTests : KaboomTests() {
         INSERT INTO documents VALUES ('3c75d791-a654-421c-b442-768a4748dff4', '{"toto":  "tata"}');
     """)
     @SqlAfter("TRUNCATE TABLE documents")
-    Test fun testMapper() {
+    @Test fun testMapper() {
     }
 
 }
