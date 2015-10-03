@@ -26,35 +26,34 @@ interface FieldsColumnAware {
 @Suppress("UNCHECKED_CAST")
 open class DataClassConstructorColumnAware<out M : Any>(val modelClass: KClass<out M>) : FieldsColumnAware {
 
-    val constructor: Constructor<out M>
-        get() {
-            val constructors = modelClass.java.declaredConstructors
+    val constructor: Constructor<out M> by lazy {
+        val constructors = modelClass.java.declaredConstructors
 
-            if (constructors.size() < 1) {
-                throw IllegalStateException("Could not find model constructor")
-            }
-
-            return constructors[0] as Constructor<M>
+        if (constructors.size() < 1) {
+            throw IllegalStateException("Could not find model constructor")
         }
 
-    override val fields: List<ColumnField>
-        get() {
-            return modelClass.java.declaredFields
-                    .filterNot { it.name.indexOf('$') >= 0 }
-                    .filterNot { it.getDeclaredAnnotationsByType(ignore::class.java).size() > 0 }
-                    .take(constructor.genericParameterTypes.size())
-                    .mapIndexed { index, field ->
-                        ColumnField(
-                                field.name,
-                                field.type.kotlin,
-                                getAnnotatedColumnName(index) ?: field.name,
-                                fieldIsId(field)
-                        )
-                    }
-        }
+        constructors[0] as Constructor<M>
+    }
 
-    override val id: List<ColumnField>
-        get() = this.fields.filter { it.id }
+    override val fields: List<ColumnField> by lazy {
+        modelClass.java.declaredFields
+                .filterNot { it.name.indexOf('$') >= 0 }
+                .filterNot { it.getDeclaredAnnotationsByType(ignore::class.java).size() > 0 }
+                .take(constructor.genericParameterTypes.size())
+                .mapIndexed { index, field ->
+                    ColumnField(
+                            field.name,
+                            field.type.kotlin,
+                            getAnnotatedColumnName(index) ?: field.name,
+                            fieldIsId(field)
+                    )
+                }
+    }
+
+    override val id: List<ColumnField> by lazy {
+        this.fields.filter { it.id }
+    }
 
     private fun fieldIsId(field: Field) =
             field.name.equals("id", ignoreCase = false) || field.getDeclaredAnnotationsByType(id::class.java).size() > 0

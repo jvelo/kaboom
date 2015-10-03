@@ -17,32 +17,34 @@ public open class ConcreteTableMappingAware<M : Any, K : Any>(
         internal val customMapper: ((ResultSet) -> M)? = null
 ) : TableMappingAware<M, K> {
 
-    override val tableName: String
-        get() = this.javaClass.findAnnotationInHierarchy(table::class.java)?.let { it.name }
+    override val tableName: String by lazy {
+        this.javaClass.findAnnotationInHierarchy(table::class.java)?.let { it.name }
                 ?: modelClass.java.findAnnotationInHierarchy(table::class.java)?.let { it.name }
                 ?: modelClass.java.simpleName.toLowerCase()
+    }
 
     override val mapper: (ResultSet) -> M by lazy {
         customMapper ?: DataClassConstructorMapper(modelClass)
     }
 
     @Suppress("UNCHECKED_CAST")
-    val modelClass: KClass<M>
-        get() = (parametrizedTypes.get(0) as Class<M>).kotlin
+    val modelClass: KClass<M> by lazy {
+        (parametrizedTypes.get(0) as Class<M>).kotlin
+    }
 
-    override val filterWhere: List<String>
-        get() = this.javaClass.findAnnotationInHierarchy(filter::class.java)?.let { listOf(it.where) }
+    override val filterWhere: List<String> by lazy {
+        this.javaClass.findAnnotationInHierarchy(filter::class.java)?.let { listOf(it.where) }
                 ?: modelClass.java.findAnnotationInHierarchy(filter::class.java)?.let { listOf(it.where) }
                 ?: listOf<String>()
+    }
 
-    val parametrizedTypes: Array<Type>
-        get() {
-            val types = (this.javaClass.genericSuperclass as ParameterizedType).actualTypeArguments
-            if (types.size() < 2) {
-                throw IllegalStateException("Can't use a DAO without concrete types")
-            }
-            return types
+    val parametrizedTypes: Array<Type> by lazy {
+        val types = (this.javaClass.genericSuperclass as ParameterizedType).actualTypeArguments
+        if (types.size() < 2) {
+            throw IllegalStateException("Can't use a DAO without concrete types")
         }
+        types
+    }
 }
 
 public open class ConcreteReadDao<M : Any, K : Any>(
@@ -76,10 +78,9 @@ public open class ConcreteWriteDao<M: Any, K: Any>(dataSource: () -> DataSource,
         ConcreteReadDao<M, K>(dataSource, mapper),
         ReadWriteDao<M, K> {
 
-    val columnAware: FieldsColumnAware
-        get() {
-            return DataClassConstructorColumnAware(modelClass)
-        }
+    val columnAware: FieldsColumnAware by lazy {
+        DataClassConstructorColumnAware(modelClass)
+    }
 
     override fun update(entity: M) {
         val statement = dataSource().connection.createStatement()
