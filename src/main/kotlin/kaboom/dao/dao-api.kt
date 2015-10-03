@@ -30,6 +30,9 @@ interface TableMappingAware<out M : Any, in K> {
     val filterWhere: List<String>
 }
 
-public open class Dao<M : Any, K : Any>(ds: () -> DataSource, mapper: ((ResultSet) -> M)? = null) :
+public open class ReadOnlyDao<M : Any, K : Any>(ds: () -> DataSource, mapper: ((ResultSet) -> M)? = null) :
         ConcreteReadDao<M, K>(ds, mapper)
+
+public open class Dao<M : Any, K : Any>(ds: () -> DataSource, mapper: ((ResultSet) -> M)? = null) :
+        ConcreteWriteDao<M, K>(ds, mapper)
 

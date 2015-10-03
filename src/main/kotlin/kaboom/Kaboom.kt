@@ -60,7 +60,7 @@ data class Document(
 data class Test(json: Map<String, Any?>) {
     val bar: String by json
 
-    val foo by Delegates.blockingLazy {
+    val foo by lazy {
         this.bar.length()
     }
 }

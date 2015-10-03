@@ -1,11 +1,16 @@
 package kaboom.dao
 
 import kaboom.*
+import kaboom.mapping.ColumnField
+import kaboom.mapping.DataClassConstructorColumnAware
+import kaboom.mapping.DataClassConstructorMapper
+import kaboom.mapping.FieldsColumnAware
 import kaboom.reflection.findAnnotationInHierarchy
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import java.sql.ResultSet
 import javax.sql.DataSource
+import kotlin.reflect.KClass
 
 public open class ConcreteTableMappingAware<M : Any, K : Any>(
         override val dataSource: () -> DataSource,
@@ -14,20 +19,20 @@ public open class ConcreteTableMappingAware<M : Any, K : Any>(
 
     override val tableName: String
         get() = this.javaClass.findAnnotationInHierarchy(table::class.java)?.let { it.name }
-                ?: modelClass.findAnnotationInHierarchy(table::class.java)?.let { it.name }
-                ?: modelClass.simpleName.toLowerCase()
+                ?: modelClass.java.findAnnotationInHierarchy(table::class.java)?.let { it.name }
+                ?: modelClass.java.simpleName.toLowerCase()
 
-    override val mapper: (ResultSet) -> M by lazy(LazyThreadSafetyMode.NONE) {
+    override val mapper: (ResultSet) -> M by lazy {
         customMapper ?: DataClassConstructorMapper(modelClass)
     }
 
     @Suppress("UNCHECKED_CAST")
-    val modelClass: Class<M>
-        get() = parametrizedTypes.get(0) as Class<M>
+    val modelClass: KClass<M>
+        get() = (parametrizedTypes.get(0) as Class<M>).kotlin
 
     override val filterWhere: List<String>
         get() = this.javaClass.findAnnotationInHierarchy(filter::class.java)?.let { listOf(it.where) }
-                ?: modelClass.findAnnotationInHierarchy(filter::class.java)?.let { listOf(it.where) }
+                ?: modelClass.java.findAnnotationInHierarchy(filter::class.java)?.let { listOf(it.where) }
                 ?: listOf<String>()
 
     val parametrizedTypes: Array<Type>
@@ -64,5 +69,45 @@ public open class ConcreteReadDao<M : Any, K : Any>(
         val query = query().where(sql)
         val bound = args.fold(query, { query, argument -> query.argument(argument) })
         return bound.execute()
+    }
+}
+
+public open class ConcreteWriteDao<M: Any, K: Any>(dataSource: () -> DataSource, mapper: ((ResultSet) -> M)?) :
+        ConcreteReadDao<M, K>(dataSource, mapper),
+        ReadWriteDao<M, K> {
+
+    val columnAware: FieldsColumnAware
+        get() {
+            return DataClassConstructorColumnAware(modelClass)
+        }
+
+    override fun update(entity: M) {
+        val statement = dataSource().connection.createStatement()
+        val sqlBuilder = StringBuilder("UPDATE $tableName ")
+        val updates = columnAware.fields.filterNot { it.id }.map {
+            "set ${it.columnName} = '${fieldValue(entity, it)}'"
+        }
+        sqlBuilder.append(updates.join(", "))
+        val where = columnAware.id.map {
+            "${it.columnName} = '${fieldValue(entity, it)}'"
+        }
+        sqlBuilder.append(" WHERE ${where.join(" AND ")}")
+
+        println(sqlBuilder.toString())
+        statement.executeUpdate(sqlBuilder.toString())
+    }
+
+    private fun fieldValue(entity: M, field: ColumnField): Any {
+        val f = entity.javaClass.getDeclaredField(field.fieldName)
+        f.isAccessible = true
+        return f.get(entity)
+    }
+
+    override fun insertAndGet(entity: M): M? {
+        throw UnsupportedOperationException()
+    }
+
+    override fun insert(entity: M) {
+        throw UnsupportedOperationException()
     }
 }
