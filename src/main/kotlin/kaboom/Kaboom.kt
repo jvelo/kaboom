@@ -49,7 +49,7 @@ data class User(
 @filter("doc @> '{\"a\":\"b\"}'")
 data class Document(
         val id: UUID,
-        @column("doc") val json: JsonObject
+        @kaboom.column("doc") val json: JsonObject
 ) {
     val a: JsonString by json
 
@@ -57,7 +57,7 @@ data class Document(
         get() { return a.toString() }
 }
 
-data class Test(json: Map<String, Any?>) {
+data class Test(@ignore val json: Map<String, Any?>) {
     val bar: String by json
 
     val foo by lazy {
@@ -89,6 +89,7 @@ fun main(args: Array<String>) {
             .argument("Jer")
             .limit(5)
             .execute()
+    logger.info("Jers:", jers)
 
     val document = Documents.withId(UUID.fromString("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"))
     document?.let {

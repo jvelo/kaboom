@@ -35,4 +35,3 @@ public open class ReadOnlyDao<M : Any, K : Any>(ds: () -> DataSource, mapper: ((
 
 public open class Dao<M : Any, K : Any>(ds: () -> DataSource, mapper: ((ResultSet) -> M)? = null) :
         ConcreteWriteDao<M, K>(ds, mapper)
-

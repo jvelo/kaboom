@@ -3,6 +3,7 @@ package kaboom
 import kaboom.dao.Dao
 import kaboom.types.registerDefaultTypesMappers
 import org.junit.Assert
+import org.junit.Before
 import org.junit.Test
 import java.util.UUID
 import javax.json.Json
@@ -24,8 +25,20 @@ data open public class Person(
     val city: JsonString by doc
 }
 
+@table("document")
+data open public class JSON(
+        val id: UUID,
+        @column("doc") val json: JsonObject
+)
+
 @filter("doc @> '{\"city\":\"Paris\"}'")
 data public class Parisian(id: UUID, doc: JsonObject) : Person(id, doc) {}
+
+object Persons : Dao<Person, UUID>(KaboomTests.dataSource)
+
+object Parisians : Dao<Parisian, UUID>(KaboomTests.dataSource)
+
+object JsonPersons: Dao<JSON, UUID>(KaboomTests.dataSource)
 
 @SqlBefore("""
     DROP TABLE IF EXISTS document;
@@ -38,17 +51,13 @@ data public class Parisian(id: UUID, doc: JsonObject) : Person(id, doc) {}
 @SqlAfter("DROP TABLE document")
 public class DaoTests : KaboomTests() {
 
-    companion object {
-        object Persons : Dao<Person, UUID>(KaboomTests.dataSource)
-
-        object Parisians : Dao<Parisian, UUID>(KaboomTests.dataSource)
+    @Before fun before() {
+        registerDefaultTypesMappers()
     }
 
-    @Test fun testMapper() {
-        registerDefaultTypesMappers()
-
-        Assert.assertEquals(4, Companion.Persons.count())
-        Assert.assertEquals(2, Companion.Parisians.count())
+    @Test fun test() {
+        Assert.assertEquals(4, Persons.count())
+        Assert.assertEquals(2, Parisians.count())
 
         Persons.update(Person(
                 UUID.fromString("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"),
@@ -58,10 +67,15 @@ public class DaoTests : KaboomTests() {
                         .build()
         ))
 
-        val updated = Companion.Persons.query().execute();
+        val updated = Persons.query().execute();
         val p = updated.first { it.id.equals(UUID.fromString("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")) }
         println (p.name)
         println (p.city)
+    }
+
+    @Test fun test_using_named_column() {
+        val jsonPersons = JsonPersons.query().execute();
+        Assert.assertEquals(4, jsonPersons.size())
     }
 
 }

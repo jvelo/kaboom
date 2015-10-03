@@ -37,10 +37,9 @@ class DataClassConstructorMapper<out M : Any>(modelClass: KClass<out M>) :
     override fun invoke(rs: ResultSet): M {
         val args = fields.map {
             val value = rs.get(it.columnName, it.fieldClass)
-            if (value != null) {
-                Types.convert(it.fieldClass, value) ?: value
-            } else {
-                null
+            when {
+                value != null -> Types.convert(it.fieldClass, value) ?: value
+                else -> null
             }
         }.toTypedArray()
         try {

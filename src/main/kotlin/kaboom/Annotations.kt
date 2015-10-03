@@ -8,7 +8,7 @@ import kotlin.annotation.Target
 public annotation class table(val name: String = "")
 
 @Retention(AnnotationRetention.RUNTIME)
-@Target(AnnotationTarget.CLASS, AnnotationTarget.FIELD)
+@Target(AnnotationTarget.FIELD, AnnotationTarget.VALUE_PARAMETER)
 public annotation class column(val name: String)
 
 @Retention(AnnotationRetention.RUNTIME)
@@ -16,9 +16,9 @@ public annotation class column(val name: String)
 public annotation class filter(val where: String)
 
 @Retention(AnnotationRetention.RUNTIME)
-@Target(AnnotationTarget.CLASS)
+@Target(AnnotationTarget.FIELD, AnnotationTarget.VALUE_PARAMETER)
 public annotation class ignore()
 
 @Retention(AnnotationRetention.RUNTIME)
-@Target(AnnotationTarget.CLASS)
+@Target(AnnotationTarget.FIELD, AnnotationTarget.VALUE_PARAMETER)
 public annotation class id()
