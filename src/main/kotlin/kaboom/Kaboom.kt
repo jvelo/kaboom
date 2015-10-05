@@ -1,16 +1,14 @@
 package kaboom
 
 import kaboom.dao.Dao
-import kaboom.types.registerDefaultTypesMappers
 import org.postgresql.ds.PGPoolingDataSource
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.util.*
 import javax.json.JsonObject
 import javax.json.JsonString
 import javax.sql.DataSource
-import kotlin.properties.Delegates
-
 import kotlin.properties.get
+import kotlin.reflect.KClass
 
 object DataSourceSupplier : () -> DataSource {
     private val source: PGPoolingDataSource
@@ -70,8 +68,6 @@ object Users: Dao<User, Int>(DataSourceSupplier)
 object Documents : Dao<Document, UUID>(DataSourceSupplier)
 
 fun main(args: Array<String>) {
-
-    registerDefaultTypesMappers()
 
     val logger = LoggerFactory.getLogger(::main.javaClass);
 

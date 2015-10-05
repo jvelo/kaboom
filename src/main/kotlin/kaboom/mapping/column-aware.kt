@@ -1,8 +1,11 @@
 package kaboom.mapping
 
 import kaboom.column
+import kaboom.db.DatabaseSupport
+import kaboom.db.DefaultDatabaseSupport
 import kaboom.id
 import kaboom.ignore
+import kaboom.type
 import java.lang.reflect.Constructor
 import java.lang.reflect.Field
 import kotlin.reflect.KClass
@@ -14,7 +17,8 @@ data class ColumnField(
         val fieldName: String,
         val fieldClass: KClass<*>,
         val columnName: String,
-        val id: Boolean
+        val id: Boolean,
+        val typeHint: String?
 )
 
 interface FieldsColumnAware {
@@ -24,7 +28,10 @@ interface FieldsColumnAware {
 }
 
 @Suppress("UNCHECKED_CAST")
-open class DataClassConstructorColumnAware<out M : Any>(val modelClass: KClass<out M>) : FieldsColumnAware {
+open class DataClassConstructorColumnAware<out M : Any>(
+        val modelClass: KClass<out M>,
+        val databaseSupport: DatabaseSupport = DefaultDatabaseSupport
+) : FieldsColumnAware {
 
     val constructor: Constructor<out M> by lazy {
         val constructors = modelClass.java.declaredConstructors
@@ -46,7 +53,8 @@ open class DataClassConstructorColumnAware<out M : Any>(val modelClass: KClass<o
                             field.name,
                             field.type.kotlin,
                             getAnnotatedColumnName(index) ?: field.name,
-                            fieldIsId(field)
+                            fieldIsId(field),
+                            getAnnotatedColumnType(index)
                     )
                 }
     }
@@ -58,11 +66,15 @@ open class DataClassConstructorColumnAware<out M : Any>(val modelClass: KClass<o
     private fun fieldIsId(field: Field) =
             field.name.equals("id", ignoreCase = false) || field.getDeclaredAnnotationsByType(id::class.java).size() > 0
 
-    private fun getAnnotatedColumnName(index: Int): String? {
+    private fun getAnnotatedColumnName(index: Int): String? = letForParameterAnnotation<column, String>(index) { name }
+
+    private fun getAnnotatedColumnType(index:Int): String? = letForParameterAnnotation<type, String>(index) { value }
+
+    private inline fun <reified A : Annotation, R: Any> letForParameterAnnotation(index: Int, f : A.() -> R ) : R? {
         val annotations = constructor.parameterAnnotations[index]
         return annotations?.singleOrNull {
-            it?.annotationType()?.equals(column::class.java) ?: false
-        }?.let { (it as column).name }
+            it?.annotationType()?.equals(A::class.java) ?: false
+        }?.let { (it as A).f() }
     }
 
 }

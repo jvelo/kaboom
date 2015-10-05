@@ -1,6 +1,8 @@
 package kaboom.dao
 
 import kaboom.QueryBuilder
+import kaboom.db.DatabaseSupport
+import kaboom.db.DefaultDatabaseSupport
 import java.sql.ResultSet
 import javax.sql.DataSource
 
@@ -24,14 +26,19 @@ interface ReadWriteDao<M : Any, in K> : ReadDao<M, K> {
 
 interface TableMappingAware<out M : Any, in K> {
     val dataSource: () -> DataSource
+    val databaseSupport: DatabaseSupport
     val mapper: (ResultSet) -> M
     val tableName: String
 
     val filterWhere: List<String>
 }
 
-public open class ReadOnlyDao<M : Any, K : Any>(ds: () -> DataSource, mapper: ((ResultSet) -> M)? = null) :
-        ConcreteReadDao<M, K>(ds, mapper)
+public open class ReadOnlyDao<M : Any, K : Any>(dataSource: () -> DataSource,
+                                                databaseSupport: DatabaseSupport = DefaultDatabaseSupport,
+                                                mapper: ((ResultSet) -> M)? = null) :
+        ConcreteReadDao<M, K>(dataSource, databaseSupport, mapper)
 
-public open class Dao<M : Any, K : Any>(ds: () -> DataSource, mapper: ((ResultSet) -> M)? = null) :
-        ConcreteWriteDao<M, K>(ds, mapper)
+public open class Dao<M : Any, K : Any>(dataSource: () -> DataSource,
+                                        databaseSupport: DatabaseSupport = DefaultDatabaseSupport,
+                                        mapper: ((ResultSet) -> M)? = null) :
+        ConcreteWriteDao<M, K>(dataSource, databaseSupport, mapper)

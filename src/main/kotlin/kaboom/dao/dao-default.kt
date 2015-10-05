@@ -1,11 +1,16 @@
 package kaboom.dao
 
-import kaboom.*
+import kaboom.Query
+import kaboom.QueryBuilder
+import kaboom.db.DatabaseSupport
+import kaboom.filter
+import kaboom.jdbc.set
 import kaboom.mapping.ColumnField
 import kaboom.mapping.DataClassConstructorColumnAware
 import kaboom.mapping.DataClassConstructorMapper
 import kaboom.mapping.FieldsColumnAware
 import kaboom.reflection.findAnnotationInHierarchy
+import kaboom.table
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import java.sql.ResultSet
@@ -14,6 +19,7 @@ import kotlin.reflect.KClass
 
 public open class ConcreteTableMappingAware<M : Any, K : Any>(
         override val dataSource: () -> DataSource,
+        override val databaseSupport: DatabaseSupport,
         internal val customMapper: ((ResultSet) -> M)? = null
 ) : TableMappingAware<M, K> {
 
@@ -49,9 +55,10 @@ public open class ConcreteTableMappingAware<M : Any, K : Any>(
 
 public open class ConcreteReadDao<M : Any, K : Any>(
         dataSource: () -> DataSource,
+        databaseSupport: DatabaseSupport,
         mapper: ((ResultSet) -> M)? = null
 ) :
-        ConcreteTableMappingAware<M, K>(dataSource, mapper),
+        ConcreteTableMappingAware<M, K>(dataSource, databaseSupport, mapper),
         ReadDao<M, K> {
 
     override fun query(): QueryBuilder<M> =
@@ -74,34 +81,60 @@ public open class ConcreteReadDao<M : Any, K : Any>(
     }
 }
 
-public open class ConcreteWriteDao<M: Any, K: Any>(dataSource: () -> DataSource, mapper: ((ResultSet) -> M)?) :
-        ConcreteReadDao<M, K>(dataSource, mapper),
+public open class ConcreteWriteDao<M : Any, K : Any>(
+        dataSource: () -> DataSource,
+        databaseSupport: DatabaseSupport,
+        mapper: ((ResultSet) -> M)?
+) :
+        ConcreteReadDao<M, K>(dataSource, databaseSupport, mapper),
         ReadWriteDao<M, K> {
 
     val columnAware: FieldsColumnAware by lazy {
-        DataClassConstructorColumnAware(modelClass)
+        DataClassConstructorColumnAware(modelClass, databaseSupport)
     }
 
     override fun update(entity: M) {
-        val statement = dataSource().connection.createStatement()
         val sqlBuilder = StringBuilder("UPDATE $tableName ")
+
         val updates = columnAware.fields.filterNot { it.id }.map {
-            "set ${it.columnName} = '${fieldValue(entity, it)}'"
+            "set ${it.columnName} = ?"
         }
         sqlBuilder.append(updates.join(", "))
         val where = columnAware.id.map {
-            "${it.columnName} = '${fieldValue(entity, it)}'"
+            "${it.columnName} = ?"
         }
         sqlBuilder.append(" WHERE ${where.join(" AND ")}")
 
-        println(sqlBuilder.toString())
-        statement.executeUpdate(sqlBuilder.toString())
+        val statement = dataSource().connection.prepareStatement(sqlBuilder.toString())
+
+        var index = 1
+        columnAware.fields.filterNot { it.id }.forEach {
+            statement.set(index, prepareForSet(it, fieldValue(entity, it)))
+            index++
+        }
+        columnAware.id.forEach {
+            statement.set(index, prepareForSet(it, fieldValue(entity, it)))
+            index++
+        }
+        statement.executeUpdate()
     }
 
-    private fun fieldValue(entity: M, field: ColumnField): Any {
+    private fun fieldValue(entity: M, field: ColumnField): Any? {
         val f = entity.javaClass.getDeclaredField(field.fieldName)
         f.isAccessible = true
         return f.get(entity)
+    }
+
+    private fun prepareForSet(field: ColumnField, value: Any?): Any? = when (field.typeHint) {
+        null -> value
+        else -> {
+            val serializer = databaseSupport.serializers.get(field.typeHint)
+            if (serializer != null) {
+                serializer.serialize(value)
+            } else {
+                value
+            }
+        }
     }
 
     override fun insertAndGet(entity: M): M? {

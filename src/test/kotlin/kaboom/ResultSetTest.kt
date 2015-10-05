@@ -1,6 +1,6 @@
 package kaboom
 
-import kaboom.mapping.get
+import kaboom.jdbc.get
 import org.junit.Assert
 import java.math.BigDecimal
 import java.sql.ResultSet

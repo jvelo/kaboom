@@ -1,11 +1,9 @@
 package kaboom
 
-import kaboom.dao.Dao
-import kaboom.types.registerDefaultTypesMappers
+import kaboom.compatibility.PgDao
 import org.junit.Assert
-import org.junit.Before
 import org.junit.Test
-import java.util.UUID
+import java.util.*
 import javax.json.Json
 import javax.json.JsonObject
 import javax.json.JsonString
@@ -13,12 +11,16 @@ import kotlin.properties.get
 
 data class Document(
         val id: UUID,
+
+        @type("jsonb")
         val doc: JsonObject
 )
 
 @table("document")
 data open public class Person(
         val id: UUID,
+
+        @type("jsonb")
         val doc: JsonObject
 ) {
     val name: JsonString by doc
@@ -28,17 +30,20 @@ data open public class Person(
 @table("document")
 data open public class JSON(
         val id: UUID,
-        @column("doc") val json: JsonObject
+
+        @type("jsonb")
+        @column("doc")
+        val json: JsonObject
 )
 
 @filter("doc @> '{\"city\":\"Paris\"}'")
 data public class Parisian(id: UUID, doc: JsonObject) : Person(id, doc) {}
 
-object Persons : Dao<Person, UUID>(KaboomTests.dataSource)
+object Persons : PgDao<Person, UUID>(KaboomTests.dataSource)
 
-object Parisians : Dao<Parisian, UUID>(KaboomTests.dataSource)
+object Parisians : PgDao<Parisian, UUID>(KaboomTests.dataSource)
 
-object JsonPersons: Dao<JSON, UUID>(KaboomTests.dataSource)
+object JsonPersons: PgDao<JSON, UUID>(KaboomTests.dataSource)
 
 @SqlBefore("""
     DROP TABLE IF EXISTS document;
@@ -50,10 +55,6 @@ object JsonPersons: Dao<JSON, UUID>(KaboomTests.dataSource)
 """)
 @SqlAfter("DROP TABLE document")
 public class DaoTests : KaboomTests() {
-
-    @Before fun before() {
-        registerDefaultTypesMappers()
-    }
 
     @Test fun test() {
         Assert.assertEquals(4, Persons.count())
