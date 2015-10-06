@@ -1,14 +1,14 @@
-package kaboom.compatibility
+package kaboom.driver
 
 import kaboom.dao.Dao
 import kaboom.dao.ReadOnlyDao
-import kaboom.db.ColumnTypeSerializer
-import kaboom.db.DatabaseSupport
-import kaboom.db.StandardDatabaseSupport
+import kaboom.driver.ColumnTypeSerializer
+import kaboom.driver.Driver
+import kaboom.driver.StandardDriver
 import java.sql.ResultSet
 import javax.sql.DataSource
 
-object PostgresDatabaseSupport : StandardDatabaseSupport() {
+object PostgresDriver : StandardDriver() {
     init {
         serializers.putIfAbsent("jsonb", object : ColumnTypeSerializer {
             override fun serialize(value: Any?): Any {
@@ -31,11 +31,11 @@ object PostgresDatabaseSupport : StandardDatabaseSupport() {
 }
 
 public open class PgReadOnlyDao<M : Any, K : Any>(dataSource: () -> DataSource,
-                                                databaseSupport: DatabaseSupport = PostgresDatabaseSupport,
+                                                driver: Driver = PostgresDriver,
                                                 mapper: ((ResultSet) -> M)? = null) :
-        ReadOnlyDao<M, K>(dataSource, databaseSupport, mapper)
+        ReadOnlyDao<M, K>(dataSource, driver, mapper)
 
 public open class PgDao<M : Any, K : Any>(dataSource: () -> DataSource,
-                                        databaseSupport: DatabaseSupport = PostgresDatabaseSupport,
+                                        driver: Driver = PostgresDriver,
                                         mapper: ((ResultSet) -> M)? = null) :
-        Dao<M, K>(dataSource, databaseSupport, mapper)
+        Dao<M, K>(dataSource, driver, mapper)

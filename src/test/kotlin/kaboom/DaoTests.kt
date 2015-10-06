@@ -1,6 +1,6 @@
 package kaboom
 
-import kaboom.compatibility.PgDao
+import kaboom.driver.PgDao
 import org.junit.Assert
 import org.junit.Test
 import java.util.*

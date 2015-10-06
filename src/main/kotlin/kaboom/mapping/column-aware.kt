@@ -1,8 +1,8 @@
 package kaboom.mapping
 
 import kaboom.column
-import kaboom.db.DatabaseSupport
-import kaboom.db.DefaultDatabaseSupport
+import kaboom.driver.Driver
+import kaboom.driver.DefaultDriver
 import kaboom.id
 import kaboom.ignore
 import kaboom.type
@@ -30,7 +30,7 @@ interface FieldsColumnAware {
 @Suppress("UNCHECKED_CAST")
 open class DataClassConstructorColumnAware<out M : Any>(
         val modelClass: KClass<out M>,
-        val databaseSupport: DatabaseSupport = DefaultDatabaseSupport
+        val driver: Driver = DefaultDriver
 ) : FieldsColumnAware {
 
     val constructor: Constructor<out M> by lazy {

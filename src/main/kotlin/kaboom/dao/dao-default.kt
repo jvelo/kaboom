@@ -2,7 +2,7 @@ package kaboom.dao
 
 import kaboom.Query
 import kaboom.QueryBuilder
-import kaboom.db.DatabaseSupport
+import kaboom.driver.Driver
 import kaboom.filter
 import kaboom.jdbc.set
 import kaboom.mapping.ColumnField
@@ -19,7 +19,7 @@ import kotlin.reflect.KClass
 
 public open class ConcreteTableMappingAware<M : Any, K : Any>(
         override val dataSource: () -> DataSource,
-        override val databaseSupport: DatabaseSupport,
+        override val driver: Driver,
         internal val customMapper: ((ResultSet) -> M)? = null
 ) : TableMappingAware<M, K> {
 
@@ -55,10 +55,10 @@ public open class ConcreteTableMappingAware<M : Any, K : Any>(
 
 public open class ConcreteReadDao<M : Any, K : Any>(
         dataSource: () -> DataSource,
-        databaseSupport: DatabaseSupport,
+        driver: Driver,
         mapper: ((ResultSet) -> M)? = null
 ) :
-        ConcreteTableMappingAware<M, K>(dataSource, databaseSupport, mapper),
+        ConcreteTableMappingAware<M, K>(dataSource, driver, mapper),
         ReadDao<M, K> {
 
     override fun query(): QueryBuilder<M> =
@@ -83,14 +83,14 @@ public open class ConcreteReadDao<M : Any, K : Any>(
 
 public open class ConcreteWriteDao<M : Any, K : Any>(
         dataSource: () -> DataSource,
-        databaseSupport: DatabaseSupport,
+        driver: Driver,
         mapper: ((ResultSet) -> M)?
 ) :
-        ConcreteReadDao<M, K>(dataSource, databaseSupport, mapper),
+        ConcreteReadDao<M, K>(dataSource, driver, mapper),
         ReadWriteDao<M, K> {
 
     val columnAware: FieldsColumnAware by lazy {
-        DataClassConstructorColumnAware(modelClass, databaseSupport)
+        DataClassConstructorColumnAware(modelClass, driver)
     }
 
     override fun update(entity: M) {
@@ -128,7 +128,7 @@ public open class ConcreteWriteDao<M : Any, K : Any>(
     private fun prepareForSet(field: ColumnField, value: Any?): Any? = when (field.typeHint) {
         null -> value
         else -> {
-            val serializer = databaseSupport.serializers.get(field.typeHint)
+            val serializer = driver.serializers.get(field.typeHint)
             if (serializer != null) {
                 serializer.serialize(value)
             } else {

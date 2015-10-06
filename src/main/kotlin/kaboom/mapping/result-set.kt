@@ -1,23 +1,23 @@
 package kaboom.mapping
 
-import kaboom.db.DatabaseSupport
-import kaboom.db.DefaultDatabaseSupport
+import kaboom.driver.Driver
+import kaboom.driver.DefaultDriver
 import kaboom.jdbc.get
 import java.sql.ResultSet
 import kotlin.reflect.KClass
 
 
 @Suppress("UNCHECKED_CAST")
-class DataClassConstructorMapper<out M : Any>(modelClass: KClass<out M>, databaseSupport: DatabaseSupport = DefaultDatabaseSupport) :
+class DataClassConstructorMapper<out M : Any>(modelClass: KClass<out M>, driver: Driver = DefaultDriver) :
         (ResultSet) -> M,
-        DataClassConstructorColumnAware<M>(modelClass, databaseSupport) {
+        DataClassConstructorColumnAware<M>(modelClass, driver) {
 
     override fun invoke(rs: ResultSet): M {
         val args = fields.map {
             val value = rs.get(it.columnName, it.fieldClass)
             when {
                 value != null -> {
-                    val deserializer = databaseSupport.typeDeserializers.get(it.fieldClass)
+                    val deserializer = driver.typeDeserializers.get(it.fieldClass)
                     deserializer?.deserialize(value) ?: value
                 }
                 else -> null
