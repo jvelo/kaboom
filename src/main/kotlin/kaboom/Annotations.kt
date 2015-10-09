@@ -26,3 +26,7 @@ public annotation class id()
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.FIELD, AnnotationTarget.VALUE_PARAMETER)
 public annotation class type(val value: String)
+
+@Retention(AnnotationRetention.RUNTIME)
+@Target(AnnotationTarget.FIELD, AnnotationTarget.VALUE_PARAMETER)
+public annotation class generated()

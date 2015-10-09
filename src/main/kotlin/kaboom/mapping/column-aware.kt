@@ -1,11 +1,8 @@
 package kaboom.mapping
 
-import kaboom.column
+import kaboom.*
 import kaboom.driver.Driver
 import kaboom.driver.DefaultDriver
-import kaboom.id
-import kaboom.ignore
-import kaboom.type
 import java.lang.reflect.Constructor
 import java.lang.reflect.Field
 import kotlin.reflect.KClass
@@ -18,12 +15,12 @@ data class ColumnField(
         val fieldClass: KClass<*>,
         val columnName: String,
         val id: Boolean,
-        val typeHint: String?
+        val typeHint: String?,
+        val generated: Boolean = false
 )
 
 interface FieldsColumnAware {
-    val fields: List<ColumnField>
-
+    val all: List<ColumnField>
     val id: List<ColumnField>
 }
 
@@ -43,7 +40,7 @@ open class DataClassConstructorColumnAware<out M : Any>(
         constructors[0] as Constructor<M>
     }
 
-    override val fields: List<ColumnField> by lazy {
+    override val all: List<ColumnField> by lazy {
         modelClass.java.declaredFields
                 .filterNot { it.name.indexOf('$') >= 0 }
                 .filterNot { it.getDeclaredAnnotationsByType(ignore::class.java).size() > 0 }
@@ -53,28 +50,30 @@ open class DataClassConstructorColumnAware<out M : Any>(
                             field.name,
                             field.type.kotlin,
                             getAnnotatedColumnName(index) ?: field.name,
-                            fieldIsId(field),
-                            getAnnotatedColumnType(index)
+                            fieldIsId(field, index),
+                            getAnnotatedColumnType(index),
+                            fieldIsGenerated(index)
                     )
                 }
     }
 
     override val id: List<ColumnField> by lazy {
-        this.fields.filter { it.id }
+        this.all.filter { it.id }
     }
 
-    private fun fieldIsId(field: Field) =
-            field.name.equals("id", ignoreCase = false) || field.getDeclaredAnnotationsByType(id::class.java).size() > 0
+    private fun fieldIsGenerated(index: Int) = getAnnotationForConstructorParameter<generated>(index)?.let { true } ?: false
+
+    private fun fieldIsId(field: Field, index: Int) =
+            field.name.equals("id", ignoreCase = false) || getAnnotationForConstructorParameter<id>(index)?.let { true } ?: false
 
     private fun getAnnotatedColumnName(index: Int): String? = letForParameterAnnotation<column, String>(index) { name }
 
-    private fun getAnnotatedColumnType(index:Int): String? = letForParameterAnnotation<type, String>(index) { value }
+    private fun getAnnotatedColumnType(index: Int): String? = letForParameterAnnotation<type, String>(index) { value }
 
-    private inline fun <reified A : Annotation, R: Any> letForParameterAnnotation(index: Int, f : A.() -> R ) : R? {
-        val annotations = constructor.parameterAnnotations[index]
-        return annotations?.singleOrNull {
-            it?.annotationType()?.equals(A::class.java) ?: false
-        }?.let { (it as A).f() }
-    }
+    private inline fun <reified A : Annotation> getAnnotationForConstructorParameter(index: Int): A? =
+            constructor.parameterAnnotations[index]?.singleOrNull { it?.annotationType()?.equals(A::class.java) ?: false }?.let { (it as A) }
+
+    private inline fun <reified A : Annotation, R : Any> letForParameterAnnotation(index: Int, f: A.() -> R): R? =
+            getAnnotationForConstructorParameter<A>(index)?.let { it.f() }
 
 }

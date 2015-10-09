@@ -8,7 +8,6 @@ import javax.json.JsonObject
 import javax.json.JsonString
 import javax.sql.DataSource
 import kotlin.properties.get
-import kotlin.reflect.KClass
 
 object DataSourceSupplier : () -> DataSource {
     private val source: PGPoolingDataSource

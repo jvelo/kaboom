@@ -4,6 +4,7 @@ import kaboom.Query
 import kaboom.QueryBuilder
 import kaboom.driver.Driver
 import kaboom.filter
+import kaboom.jdbc.get
 import kaboom.jdbc.set
 import kaboom.mapping.ColumnField
 import kaboom.mapping.DataClassConstructorColumnAware
@@ -13,7 +14,9 @@ import kaboom.reflection.findAnnotationInHierarchy
 import kaboom.table
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
+import java.sql.PreparedStatement
 import java.sql.ResultSet
+import java.sql.Statement
 import javax.sql.DataSource
 import kotlin.reflect.KClass
 
@@ -89,18 +92,18 @@ public open class ConcreteWriteDao<M : Any, K : Any>(
         ConcreteReadDao<M, K>(dataSource, driver, mapper),
         ReadWriteDao<M, K> {
 
-    val columnAware: FieldsColumnAware by lazy {
+    val columns: FieldsColumnAware by lazy {
         DataClassConstructorColumnAware(modelClass, driver)
     }
 
     override fun update(entity: M) {
         val sqlBuilder = StringBuilder("UPDATE $tableName ")
 
-        val updates = columnAware.fields.filterNot { it.id }.map {
+        val updates = columns.all.filterNot { it.id }.map {
             "set ${it.columnName} = ?"
         }
         sqlBuilder.append(updates.join(", "))
-        val where = columnAware.id.map {
+        val where = columns.id.map {
             "${it.columnName} = ?"
         }
         sqlBuilder.append(" WHERE ${where.join(" AND ")}")
@@ -108,15 +111,57 @@ public open class ConcreteWriteDao<M : Any, K : Any>(
         val statement = dataSource().connection.prepareStatement(sqlBuilder.toString())
 
         var index = 1
-        columnAware.fields.filterNot { it.id }.forEach {
+        columns.all.filterNot { it.id }.forEach {
             statement.set(index, prepareForSet(it, fieldValue(entity, it)))
             index++
         }
-        columnAware.id.forEach {
+        columns.id.forEach {
             statement.set(index, prepareForSet(it, fieldValue(entity, it)))
             index++
         }
         statement.executeUpdate()
+    }
+
+    override fun insert(entity: M) {
+        val statement = createStatementForInsert(entity)
+        statement.executeUpdate()
+    }
+
+    override fun insertAndGet(entity: M): M? {
+        val statement = createStatementForInsert(entity, true)
+        statement.executeUpdate()
+
+        val generatedKeys = statement.generatedKeys
+        generatedKeys.next()
+
+        val keyElements = columns.id.map { generatedKeys.get(it.columnName, it.fieldClass) }
+
+        when (keyElements.size()) {
+            0 -> return null
+            1 -> return this.withId(keyElements.get(0) as K)
+            else -> return null
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    private fun createStatementForInsert(entity: M, returnGeneratedKeys: Boolean = false): PreparedStatement {
+        // Find fields that will be used for the insert query : all but the one marked as generated
+        val fields = columns.all.filterNot { it.generated }
+        val sql = "INSERT INTO $tableName (${fields.map{it.columnName}.join(",")}) VALUES (${fields.map { "?" }.join(",")})"
+
+        val statement = dataSource().connection.prepareStatement(sql, when (returnGeneratedKeys){
+            true -> Statement.RETURN_GENERATED_KEYS
+            else -> Statement.NO_GENERATED_KEYS
+        })
+
+        var index = 1
+        fields.forEach {
+            statement.set(index, prepareForSet(it, fieldValue(entity, it)))
+            index++
+        }
+
+        return statement
     }
 
     private fun fieldValue(entity: M, field: ColumnField): Any? {
@@ -135,13 +180,5 @@ public open class ConcreteWriteDao<M : Any, K : Any>(
                 value
             }
         }
-    }
-
-    override fun insertAndGet(entity: M): M? {
-        throw UnsupportedOperationException()
-    }
-
-    override fun insert(entity: M) {
-        throw UnsupportedOperationException()
     }
 }

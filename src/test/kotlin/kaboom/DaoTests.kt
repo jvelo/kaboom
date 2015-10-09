@@ -8,6 +8,7 @@ import javax.json.Json
 import javax.json.JsonObject
 import javax.json.JsonString
 import kotlin.properties.get
+import kotlin.test.assertNotNull
 
 data class Document(
         val id: UUID,
@@ -45,6 +46,14 @@ object Parisians : PgDao<Parisian, UUID>(KaboomTests.dataSource)
 
 object JsonPersons: PgDao<JSON, UUID>(KaboomTests.dataSource)
 
+data class Planet(
+        @generated val id: Int? = null,
+
+        val name: String
+)
+
+object Planets : PgDao<Planet, Int>(KaboomTests.dataSource)
+
 @SqlBefore("""
     DROP TABLE IF EXISTS document;
     CREATE TABLE document (id uuid, doc jsonb);
@@ -56,7 +65,34 @@ object JsonPersons: PgDao<JSON, UUID>(KaboomTests.dataSource)
 @SqlAfter("DROP TABLE document")
 public class DaoTests : KaboomTests() {
 
-    @Test fun test() {
+    @SqlBefore("""
+        DROP TABLE IF EXISTS planet;
+        CREATE TABLE planet(id SERIAL, name VARCHAR)
+    """)
+    @SqlAfter("DROP TABLE planet")
+    @Test
+    fun test_insert_and_then_retrieve_with_serial_id() {
+        Planets.insert(Planet(name = "Mars"))
+        val mars = Planets.query().where("name = ?").argument("Mars").single()
+        assertNotNull(mars)
+        assertNotNull(mars?.id);
+    }
+
+    @SqlBefore("""
+        DROP TABLE IF EXISTS planet;
+        CREATE TABLE planet(id SERIAL, name VARCHAR)
+    """)
+    @SqlAfter("DROP TABLE planet")
+    @Test
+    fun test_insert_and_get_with_serial_id() {
+        val mars = Planets.insertAndGet(Planet(name = "Mars"))
+        assertNotNull(mars)
+        assertNotNull(mars?.id);
+    }
+
+    // FIXME find out why this one hangs from time to time
+    @Test
+    fun test_update() {
         Assert.assertEquals(4, Persons.count())
         Assert.assertEquals(2, Parisians.count())
 
@@ -70,11 +106,12 @@ public class DaoTests : KaboomTests() {
 
         val updated = Persons.query().execute();
         val p = updated.first { it.id.equals(UUID.fromString("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")) }
-        println (p.name)
-        println (p.city)
+        Assert.assertEquals("Roger", p.name.string)
+        Assert.assertEquals("London", p.city.string)
     }
 
-    @Test fun test_using_named_column() {
+    @Test
+    fun test_using_named_column() {
         val jsonPersons = JsonPersons.query().execute();
         Assert.assertEquals(4, jsonPersons.size())
     }
