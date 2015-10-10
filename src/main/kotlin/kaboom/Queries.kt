@@ -49,24 +49,22 @@ class QueryBuilder<out M: Any>(
     fun count(): Long = one { resultSet -> resultSet.getLong(1) }!!
 
     fun <T: Any> one(f: (ResultSet) -> T): T? {
-        val rs = getResultSet()
-        if (!rs.next()) {
-            return null
-        } else {
-            return f(rs)
+         return withResultSet { rs ->
+             if (!rs.next()) null else f(rs)
         }
     }
 
     fun <T: Any> map(f: (ResultSet) -> T) : List<T> {
-        val rs = getResultSet()
         val result = arrayListOf<T>()
-        while (rs.next()) {
-            result.add(f(rs))
+        withResultSet { rs ->
+            while (rs.next()) {
+                result.add(f(rs))
+            }
         }
         return result
     }
 
-    private fun getResultSet(): ResultSet {
+    private fun <T: Any?> withResultSet(f: (ResultSet) -> T): T {
         val sql = serialize()
         val connection = dataSource().connection
         val statement = connection.prepareStatement(sql)
@@ -74,8 +72,16 @@ class QueryBuilder<out M: Any>(
             statement.setObject(i + 1, argument)
         }
         logger.info(sql, query.arguments)
-        val rs = statement.executeQuery();
-        return rs
+        val resultSet = statement.executeQuery();
+        // Execute callback function
+        val result = f(resultSet)
+
+        // Close everything
+        resultSet.close()
+        statement.close()
+        connection.close()
+
+        return result
     }
 
     private fun serialize(): String = query.select +
