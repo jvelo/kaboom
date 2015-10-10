@@ -62,15 +62,21 @@ class SqlResource(dsp: () -> DataSource) : ExternalResource() {
 
     override fun before() {
         if (sqlBefore != null) {
-            val statement = dataSource.connection.createStatement()
+            val connection = dataSource.connection
+            val statement = connection.createStatement()
             statement.execute(sqlBefore!!.sql)
+            statement.close()
+            connection.close()
         }
     }
 
     override fun after() {
         if (sqlAfter != null) {
-            val statement = dataSource.connection.createStatement()
+            val connection = dataSource.connection
+            val statement = connection.createStatement()
             statement.execute(sqlAfter!!.sql)
+            statement.close()
+            connection.close()
         }
     }
 }

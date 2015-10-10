@@ -1,13 +1,43 @@
 package kaboom
 
+import com.codahale.metrics.ConsoleReporter
+import com.codahale.metrics.MetricRegistry
+import com.zaxxer.hikari.HikariConfig
+import com.zaxxer.hikari.HikariDataSource
 import kaboom.dao.Dao
 import org.postgresql.ds.PGPoolingDataSource
 import org.slf4j.LoggerFactory
 import java.util.*
+import java.util.concurrent.TimeUnit
 import javax.json.JsonObject
 import javax.json.JsonString
 import javax.sql.DataSource
 import kotlin.properties.get
+
+val metrics = MetricRegistry();
+
+object HikariPooledDataSourceSupplier: () -> DataSource {
+
+    private val source : HikariDataSource
+
+    init {
+        val config = HikariConfig();
+        config.jdbcUrl = "jdbc:postgresql://localhost:5432/test";
+        config.username = "postgres";
+        config.password = "";
+
+        config.dataSourceClassName = "org.postgresql.ds.PGSimpleDataSource"
+
+        source = HikariDataSource(config);
+
+        source.metricRegistry = metrics
+    }
+
+    override fun invoke(): DataSource {
+        return source
+    }
+
+}
 
 object DataSourceSupplier : () -> DataSource {
     private val source: PGPoolingDataSource
@@ -63,12 +93,25 @@ data class Test(@ignore val json: Map<String, Any?>) {
 }
 
 
-object Users: Dao<User, Int>(DataSourceSupplier)
-object Documents : Dao<Document, UUID>(DataSourceSupplier)
+object Users: Dao<User, Int>(HikariPooledDataSourceSupplier)
+object Documents : Dao<Document, UUID>(HikariPooledDataSourceSupplier)
 
 fun main(args: Array<String>) {
 
+    val reporter = ConsoleReporter.forRegistry(metrics)
+            .convertRatesTo(TimeUnit.SECONDS)
+            .convertDurationsTo(TimeUnit.MILLISECONDS)
+            .build();
+    reporter.start(1, TimeUnit.SECONDS);
+
     val logger = LoggerFactory.getLogger(::main.javaClass);
+
+    val document = Documents.withId(UUID.fromString("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"))
+    document?.let {
+        println(it)
+        println(it.a)
+        println(it.b)
+    }
 
     val users = Users.where("name = ?", "Jerome")
     users.map({ user ->
@@ -85,12 +128,5 @@ fun main(args: Array<String>) {
             .limit(5)
             .execute()
     logger.info("Jers:", jers)
-
-    val document = Documents.withId(UUID.fromString("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"))
-    document?.let {
-        println(it)
-        println(it.a)
-        println(it.b)
-    }
 
 }

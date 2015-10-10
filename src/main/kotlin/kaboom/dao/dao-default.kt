@@ -123,34 +123,39 @@ public open class ConcreteWriteDao<M : Any, K : Any>(
     }
 
     override fun insert(entity: M) {
-        val statement = createStatementForInsert(entity)
-        statement.executeUpdate()
+        withInsertStatement(entity) { statement ->
+            statement.executeUpdate()
+        }
     }
 
     override fun insertAndGet(entity: M): M? {
-        val statement = createStatementForInsert(entity, true)
-        statement.executeUpdate()
+        return withInsertStatement(entity, true) { statement ->
+            statement.executeUpdate()
 
-        val generatedKeys = statement.generatedKeys
-        generatedKeys.next()
+            val generatedKeys = statement.generatedKeys
+            generatedKeys.next()
 
-        val keyElements = columns.id.map { generatedKeys.get(it.columnName, it.fieldClass) }
+            val keyElements = columns.id.map { generatedKeys.get(it.columnName, it.fieldClass) }
 
-        when (keyElements.size()) {
-            0 -> return null
-            1 -> return this.withId(keyElements.get(0) as K)
-            else -> return null
+            generatedKeys.close()
+
+            return@withInsertStatement when (keyElements.size()) {
+                0 -> null
+                1 -> this.withId(keyElements.get(0) as K)
+                else ->  null
+            }
         }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    private fun createStatementForInsert(entity: M, returnGeneratedKeys: Boolean = false): PreparedStatement {
+    private fun <R : Any?> withInsertStatement(entity: M, returnGeneratedKeys: Boolean = false, function: (PreparedStatement) -> R) : R {
         // Find fields that will be used for the insert query : all but the one marked as generated
         val fields = columns.all.filterNot { it.generated }
         val sql = "INSERT INTO $tableName (${fields.map{it.columnName}.join(",")}) VALUES (${fields.map { "?" }.join(",")})"
 
-        val statement = dataSource().connection.prepareStatement(sql, when (returnGeneratedKeys){
+        val connection = dataSource().connection
+        val statement = connection.prepareStatement(sql, when (returnGeneratedKeys){
             true -> Statement.RETURN_GENERATED_KEYS
             else -> Statement.NO_GENERATED_KEYS
         })
@@ -161,7 +166,10 @@ public open class ConcreteWriteDao<M : Any, K : Any>(
             index++
         }
 
-        return statement
+        val result = function(statement)
+        statement.close()
+
+        return result
     }
 
     private fun fieldValue(entity: M, field: ColumnField): Any? {
