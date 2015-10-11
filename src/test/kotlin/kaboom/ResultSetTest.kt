@@ -15,6 +15,7 @@ public class ResultSetTests : KaboomTests() {
         rs.next()
         Assert.assertTrue(rs.get("value", Boolean::class) is Boolean)
         Assert.assertTrue(rs.get("value") is Boolean)
+        rs.close()
     }
 
     @test fun test_get_big_decimal() {
@@ -22,6 +23,7 @@ public class ResultSetTests : KaboomTests() {
         rs.next()
         Assert.assertTrue(rs.get("value", BigDecimal::class) is BigDecimal)
         Assert.assertTrue(rs.get("value") is BigDecimal)
+        rs.close()
     }
 
     @test fun test_get_timestamp() {
@@ -29,8 +31,9 @@ public class ResultSetTests : KaboomTests() {
         rs.next()
         Assert.assertTrue(rs.get("value", Timestamp::class) is Timestamp)
         Assert.assertTrue(rs.get("value") is Timestamp)
+        rs.close()
     }
 
     private fun executeQuery(sql: String): ResultSet =
-        KaboomTests.dataSource().connection.createStatement().executeQuery(sql)
+        KaboomTests.kit.connection { connection -> connection.jdbcConnection.createStatement().executeQuery(sql) }
 }

@@ -1,5 +1,6 @@
 package kaboom.mapping
 
+import kaboom.Kit
 import kaboom.driver.Driver
 import kaboom.driver.DefaultDriver
 import kaboom.jdbc.get
@@ -8,16 +9,16 @@ import kotlin.reflect.KClass
 
 
 @Suppress("UNCHECKED_CAST")
-class DataClassConstructorMapper<out M : Any>(modelClass: KClass<out M>, driver: Driver = DefaultDriver) :
+class DataClassConstructorMapper<out M : Any>(val kit: Kit, modelClass: KClass<out M>) :
         (ResultSet) -> M,
-        DataClassConstructorColumnAware<M>(modelClass, driver) {
+        DataClassConstructorColumnAware<M>(modelClass) {
 
     override fun invoke(rs: ResultSet): M {
         val args = all.map {
             val value = rs.get(it.columnName, it.fieldClass)
             when {
                 value != null -> {
-                    val deserializer = driver.typeDeserializers.get(it.fieldClass)
+                    val deserializer = kit.driver.typeDeserializers.get(it.fieldClass)
                     deserializer?.deserialize(value) ?: value
                 }
                 else -> null

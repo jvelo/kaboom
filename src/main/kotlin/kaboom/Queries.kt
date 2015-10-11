@@ -14,7 +14,7 @@ data class Query(
 )
 
 class QueryBuilder<out M: Any>(
-        val dataSource: () -> DataSource,
+        val kit: Kit,
         val mapper: (ResultSet) -> M,
         val query: Query
 ) {
@@ -22,25 +22,25 @@ class QueryBuilder<out M: Any>(
     val logger = LoggerFactory.getLogger("sql")
 
     fun select(select: String) =
-            QueryBuilder<M>(dataSource, mapper, query.copy(select = select))
+            QueryBuilder<M>(kit, mapper, query.copy(select = select))
 
     fun where(where: String) =
-            QueryBuilder<M>(dataSource, mapper, query.copy(where = query.where.plus(where)))
+            QueryBuilder<M>(kit, mapper, query.copy(where = query.where.plus(where)))
 
     fun limit(limit: Long) =
-            QueryBuilder<M>(dataSource, mapper, query.copy(limit = limit))
+            QueryBuilder<M>(kit, mapper, query.copy(limit = limit))
 
     fun offset(offset: Long) =
-            QueryBuilder<M>(dataSource, mapper, query.copy(offset = offset))
+            QueryBuilder<M>(kit, mapper, query.copy(offset = offset))
 
     fun order(order: String) =
-            QueryBuilder<M>(dataSource, mapper, query.copy(order = order))
+            QueryBuilder<M>(kit, mapper, query.copy(order = order))
 
     fun argument(argument: Any) =
-            QueryBuilder<M>(dataSource, mapper, query.copy(arguments = query.arguments.plus(argument)))
+            QueryBuilder<M>(kit, mapper, query.copy(arguments = query.arguments.plus(argument)))
 
     fun arguments(vararg arguments: Any) =
-            QueryBuilder<M>(dataSource, mapper, query.copy(arguments = query.arguments.plus(arguments)))
+            QueryBuilder<M>(kit, mapper, query.copy(arguments = query.arguments.plus(arguments)))
 
     fun execute(): List<M> = map(this.mapper)
 
@@ -66,22 +66,19 @@ class QueryBuilder<out M: Any>(
 
     private fun <T: Any?> withResultSet(f: (ResultSet) -> T): T {
         val sql = serialize()
-        val connection = dataSource().connection
-        val statement = connection.prepareStatement(sql)
-        query.arguments.forEachIndexed { i, argument ->
-            statement.setObject(i + 1, argument)
+        return kit.connection { connection ->
+            logger.info(sql, query.arguments)
+            connection.preparedStatement(sql) {
+                query.arguments.forEachIndexed { i, argument ->
+                    it.setObject(i + 1, argument)
+                }
+                val resultSet = it.executeQuery();
+                val result = f(resultSet)
+                resultSet.close()
+
+                result
+            }
         }
-        logger.info(sql, query.arguments)
-        val resultSet = statement.executeQuery();
-        // Execute callback function
-        val result = f(resultSet)
-
-        // Close everything
-        resultSet.close()
-        statement.close()
-        connection.close()
-
-        return result
     }
 
     private fun serialize(): String = query.select +

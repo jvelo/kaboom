@@ -40,11 +40,11 @@ data open public class JSON(
 @filter("doc @> '{\"city\":\"Paris\"}'")
 data public class Parisian(id: UUID, doc: JsonObject) : Person(id, doc) {}
 
-object Persons : PgDao<Person, UUID>(KaboomTests.dataSource)
+object Persons : PgDao<Person, UUID>(KaboomTests.kit)
 
-object Parisians : PgDao<Parisian, UUID>(KaboomTests.dataSource)
+object Parisians : PgDao<Parisian, UUID>(KaboomTests.kit)
 
-object JsonPersons: PgDao<JSON, UUID>(KaboomTests.dataSource)
+object JsonPersons: PgDao<JSON, UUID>(KaboomTests.kit)
 
 data class Planet(
         @generated val id: Int? = null,
@@ -52,7 +52,7 @@ data class Planet(
         val name: String
 )
 
-object Planets : PgDao<Planet, Int>(KaboomTests.dataSource)
+object Planets : PgDao<Planet, Int>(KaboomTests.kit)
 
 @SqlBefore("""
     DROP TABLE IF EXISTS document;
@@ -88,6 +88,19 @@ public class DaoTests : KaboomTests() {
         val mars = Planets.insertAndGet(Planet(name = "Mars"))
         assertNotNull(mars)
         assertNotNull(mars?.id);
+    }
+
+    @Test
+    fun test_insert_jsonb() {
+        Persons.insert(
+                Person(
+                        UUID.randomUUID(),
+                        Json.createObjectBuilder()
+                                .add("name", "Paul")
+                                .add("city", "New-York")
+                                .build()
+                )
+        )
     }
 
     // FIXME find out why this one hangs from time to time

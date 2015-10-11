@@ -1,28 +1,19 @@
 package kaboom.dao
 
-import kaboom.Query
-import kaboom.QueryBuilder
-import kaboom.driver.Driver
-import kaboom.filter
+import kaboom.*
 import kaboom.jdbc.get
-import kaboom.jdbc.set
 import kaboom.mapping.ColumnField
 import kaboom.mapping.DataClassConstructorColumnAware
 import kaboom.mapping.DataClassConstructorMapper
 import kaboom.mapping.FieldsColumnAware
 import kaboom.reflection.findAnnotationInHierarchy
-import kaboom.table
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
-import java.sql.PreparedStatement
 import java.sql.ResultSet
-import java.sql.Statement
-import javax.sql.DataSource
 import kotlin.reflect.KClass
 
 public open class ConcreteTableMappingAware<M : Any, K : Any>(
-        override val dataSource: () -> DataSource,
-        override val driver: Driver,
+        override val kit: Kit,
         internal val customMapper: ((ResultSet) -> M)? = null
 ) : TableMappingAware<M, K> {
 
@@ -33,7 +24,7 @@ public open class ConcreteTableMappingAware<M : Any, K : Any>(
     }
 
     override val mapper: (ResultSet) -> M by lazy {
-        customMapper ?: DataClassConstructorMapper(modelClass)
+        customMapper ?: DataClassConstructorMapper(kit, modelClass)
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -57,15 +48,14 @@ public open class ConcreteTableMappingAware<M : Any, K : Any>(
 }
 
 public open class ConcreteReadDao<M : Any, K : Any>(
-        dataSource: () -> DataSource,
-        driver: Driver,
+        kit: Kit,
         mapper: ((ResultSet) -> M)? = null
 ) :
-        ConcreteTableMappingAware<M, K>(dataSource, driver, mapper),
+        ConcreteTableMappingAware<M, K>(kit, mapper),
         ReadDao<M, K> {
 
     override fun query(): QueryBuilder<M> =
-            QueryBuilder(dataSource, mapper, Query(select = "select * from $tableName", where = filterWhere))
+            QueryBuilder(kit, mapper, Query(select = "select * from $tableName", where = filterWhere))
 
     override fun count(): Long = query().select("select count(*) from $tableName").count()
 
@@ -85,15 +75,14 @@ public open class ConcreteReadDao<M : Any, K : Any>(
 }
 
 public open class ConcreteWriteDao<M : Any, K : Any>(
-        dataSource: () -> DataSource,
-        driver: Driver,
+        kit: Kit,
         mapper: ((ResultSet) -> M)?
 ) :
-        ConcreteReadDao<M, K>(dataSource, driver, mapper),
+        ConcreteReadDao<M, K>(kit, mapper),
         ReadWriteDao<M, K> {
 
     val columns: FieldsColumnAware by lazy {
-        DataClassConstructorColumnAware(modelClass, driver)
+        DataClassConstructorColumnAware(modelClass)
     }
 
     override fun update(entity: M) {
@@ -108,68 +97,39 @@ public open class ConcreteWriteDao<M : Any, K : Any>(
         }
         sqlBuilder.append(" WHERE ${where.join(" AND ")}")
 
-        val statement = dataSource().connection.prepareStatement(sqlBuilder.toString())
-
-        var index = 1
-        columns.all.filterNot { it.id }.forEach {
-            statement.set(index, prepareForSet(it, fieldValue(entity, it)))
-            index++
+        kit.connection { connection ->
+            connection.update(sqlBuilder.toString(),
+                    *columns.all.filterNot { it.id }.plus(columns.id).map{ Argument(fieldValue(entity, it), it.typeHint) }.toTypedArray())
         }
-        columns.id.forEach {
-            statement.set(index, prepareForSet(it, fieldValue(entity, it)))
-            index++
-        }
-        statement.executeUpdate()
     }
 
     override fun insert(entity: M) {
-        withInsertStatement(entity) { statement ->
-            statement.executeUpdate()
-        }
+        val insert = getInsert(entity)
+        kit.connection { connection -> connection.insert(insert.first, *insert.second.toTypedArray()) }
     }
 
     override fun insertAndGet(entity: M): M? {
-        return withInsertStatement(entity, true) { statement ->
-            statement.executeUpdate()
+        val insert = getInsert(entity)
+        return kit.connection { connection ->
+            val keyElements = connection.insert(insert.first, *insert.second.toTypedArray()) { keys ->
+                columns.id.map { keys.get(it.columnName, it.fieldClass) }
+            }
 
-            val generatedKeys = statement.generatedKeys
-            generatedKeys.next()
-
-            val keyElements = columns.id.map { generatedKeys.get(it.columnName, it.fieldClass) }
-
-            generatedKeys.close()
-
-            return@withInsertStatement when (keyElements.size()) {
+            when (keyElements.size()) {
                 0 -> null
                 1 -> this.withId(keyElements.get(0) as K)
-                else ->  null
+                else -> null
             }
         }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    private fun <R : Any?> withInsertStatement(entity: M, returnGeneratedKeys: Boolean = false, function: (PreparedStatement) -> R) : R {
-        // Find fields that will be used for the insert query : all but the one marked as generated
+    private fun getInsert(entity: M) : Pair<String, List<Argument>> {
         val fields = columns.all.filterNot { it.generated }
-        val sql = "INSERT INTO $tableName (${fields.map{it.columnName}.join(",")}) VALUES (${fields.map { "?" }.join(",")})"
-
-        val connection = dataSource().connection
-        val statement = connection.prepareStatement(sql, when (returnGeneratedKeys){
-            true -> Statement.RETURN_GENERATED_KEYS
-            else -> Statement.NO_GENERATED_KEYS
-        })
-
-        var index = 1
-        fields.forEach {
-            statement.set(index, prepareForSet(it, fieldValue(entity, it)))
-            index++
+        return "INSERT INTO $tableName (${fields.map{it.columnName}.join(",")}) VALUES (${fields.map { "?" }.join(",")})" to fields.map {
+            Argument(fieldValue(entity, it), it.typeHint)
         }
-
-        val result = function(statement)
-        statement.close()
-
-        return result
     }
 
     private fun fieldValue(entity: M, field: ColumnField): Any? {
@@ -178,15 +138,5 @@ public open class ConcreteWriteDao<M : Any, K : Any>(
         return f.get(entity)
     }
 
-    private fun prepareForSet(field: ColumnField, value: Any?): Any? = when (field.typeHint) {
-        null -> value
-        else -> {
-            val serializer = driver.serializers.get(field.typeHint)
-            if (serializer != null) {
-                serializer.serialize(value)
-            } else {
-                value
-            }
-        }
-    }
+
 }

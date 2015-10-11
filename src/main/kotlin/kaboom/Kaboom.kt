@@ -61,6 +61,8 @@ object DataSourceSupplier : () -> DataSource {
     }
 }
 
+object DefaultKit : Kit(dataSource = DataSourceSupplier())
+
 @table("users")
 data class User(
         val id: Long,
@@ -93,8 +95,16 @@ data class Test(@ignore val json: Map<String, Any?>) {
 }
 
 
-object Users: Dao<User, Int>(HikariPooledDataSourceSupplier)
-object Documents : Dao<Document, UUID>(HikariPooledDataSourceSupplier)
+val toto = object {
+    fun get(): Any {
+        return this;
+    }
+}
+
+
+
+object Users: Dao<User, Int>(DefaultKit)
+object Documents : Dao<Document, UUID>(DefaultKit)
 
 fun main(args: Array<String>) {
 

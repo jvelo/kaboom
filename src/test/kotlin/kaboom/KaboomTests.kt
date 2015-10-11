@@ -109,6 +109,9 @@ open class KaboomTests {
                 return this.source
             }
         }
+        val kit = Kit(
+                dataSource = dataSource()
+        )
 
         @ClassRule
         val classSql: SqlResource = SqlResource(dataSource)

@@ -1,8 +1,6 @@
 package kaboom.mapping
 
 import kaboom.*
-import kaboom.driver.Driver
-import kaboom.driver.DefaultDriver
 import java.lang.reflect.Constructor
 import java.lang.reflect.Field
 import kotlin.reflect.KClass
@@ -26,8 +24,7 @@ interface FieldsColumnAware {
 
 @Suppress("UNCHECKED_CAST")
 open class DataClassConstructorColumnAware<out M : Any>(
-        val modelClass: KClass<out M>,
-        val driver: Driver = DefaultDriver
+        val modelClass: KClass<out M>
 ) : FieldsColumnAware {
 
     val constructor: Constructor<out M> by lazy {
