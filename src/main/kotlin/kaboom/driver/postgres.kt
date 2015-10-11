@@ -1,11 +1,5 @@
 package kaboom.driver
 
-import kaboom.Kit
-import kaboom.dao.Dao
-import kaboom.dao.ReadOnlyDao
-import java.sql.ResultSet
-import javax.sql.DataSource
-
 object PostgresDriver : StandardDriver() {
     init {
         serializers.putIfAbsent("jsonb", object : ColumnTypeSerializer {
@@ -27,11 +21,3 @@ object PostgresDriver : StandardDriver() {
         })
     }
 }
-
-public open class PgReadOnlyDao<M : Any, K : Any>(kit: Kit,
-                                                mapper: ((ResultSet) -> M)? = null) :
-        ReadOnlyDao<M, K>(Kit(kit.connectionProvider, driver = PostgresDriver), mapper)
-
-public open class PgDao<M : Any, K : Any>(kit: Kit,
-                                        mapper: ((ResultSet) -> M)? = null) :
-        Dao<M, K>(Kit(kit.connectionProvider, driver = PostgresDriver), mapper)

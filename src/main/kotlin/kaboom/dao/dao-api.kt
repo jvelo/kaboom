@@ -7,7 +7,7 @@ import kaboom.driver.DefaultDriver
 import java.sql.ResultSet
 import javax.sql.DataSource
 
-public interface ReadDao <out M : Any, in K> {
+public interface ReadDao <Self :ReadDao<Self, M, K>, out M : Any, in K> {
     fun query(): QueryBuilder<M>
 
     fun withId(id: K): M?
@@ -16,9 +16,11 @@ public interface ReadDao <out M : Any, in K> {
 
     fun count(): Long
     fun count(sqlWhere: String, vararg args: Any): Long
+
+    fun transaction(f: Self.() -> Unit) : Unit
 }
 
-interface ReadWriteDao<M : Any, in K> : ReadDao<M, K> {
+interface ReadWriteDao<Self : ReadWriteDao<Self, M, K>, M : Any, in K> : ReadDao<Self, M, K> {
     fun insert(entity: M): Unit
     fun insertAndGet(entity: M): M?
 
@@ -33,10 +35,10 @@ interface TableMappingAware<out M : Any, in K> {
     val filterWhere: List<String>
 }
 
-public open class ReadOnlyDao<M : Any, K : Any>(kit: Kit,
+public open class ReadOnlyDao<Self : ReadOnlyDao<Self, M, K>, M : Any, K : Any>(kit: Kit,
                                                 mapper: ((ResultSet) -> M)? = null) :
-        ConcreteReadDao<M, K>(kit, mapper)
+        ConcreteReadDao<Self, M, K>(kit, mapper)
 
-public open class Dao<M : Any, K : Any>(kit: Kit,
+public open class Dao<Self: Dao<Self, M, K>, M : Any, K : Any>(kit: Kit,
                                         mapper: ((ResultSet) -> M)? = null) :
-        ConcreteWriteDao<M, K>(kit, mapper)
+        ConcreteWriteDao<Self, M, K>(kit, mapper)

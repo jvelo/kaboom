@@ -41,9 +41,9 @@ public class KitConnection(
         }
     }
 
-    public fun insert(sql: String, vararg arguments: Any?): Unit = this.update(sql, arguments)
+    public fun insert(sql: String, vararg arguments: Any?): Unit = this.update(sql, *arguments)
 
-    public fun insert(sql: String, vararg arguments: Argument): Unit = this.update(sql, arguments)
+    public fun insert(sql: String, vararg arguments: Argument): Unit = this.update(sql, *arguments)
 
     public fun <T> insert(sql: String, vararg arguments: Any?, f: (ResultSet) -> T): T {
         return this.insert(sql, *(arguments.map {Argument(it)}.toTypedArray())){ f(it) }
@@ -125,9 +125,11 @@ public open class Kit(
         val driver: Driver = DefaultDriver
 ) {
 
-    constructor(dataSource: DataSource) : this(connectionProvider = {
+    private var transaction : KitConnection? = null
+
+    constructor(dataSource: DataSource, driver: Driver = DefaultDriver) : this(connectionProvider = {
         dataSource.connection
-    })
+    }, driver = driver)
 
     private fun open():  Connection {
         val start = System.nanoTime()
@@ -138,14 +140,17 @@ public open class Kit(
     }
 
     public fun <R> connection(f: (KitConnection) -> R) :R {
-        val connection = KitConnection(this.open(), driver = this.driver)
+        val connection = transaction ?: KitConnection(this.open(), driver = this.driver)
         val r = f(connection);
-        connection.jdbcConnection.close()
+        if (transaction == null) {
+            connection.jdbcConnection.close()
+        }
         return r;
     }
 
-    public fun <R> transaction(f: (KitConnection) -> R) : R {
-        return this.connection { connection ->
+    public fun transaction(f: (KitConnection) -> Unit) : Unit {
+        this.connection { connection ->
+            transaction = connection
             val autoCommitBefore = connection.jdbcConnection.autoCommit
             connection.jdbcConnection.autoCommit = false
             try {
@@ -156,11 +161,12 @@ public open class Kit(
                 finally {
                     connection.jdbcConnection.autoCommit = autoCommitBefore
                 }
-                result
             }
             catch (e: Exception) {
                 connection.jdbcConnection.rollback()
-                throw e
+            }
+            finally {
+                transaction = null
             }
         }
     }

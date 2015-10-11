@@ -101,10 +101,8 @@ val toto = object {
     }
 }
 
-
-
-object Users: Dao<User, Int>(DefaultKit)
-object Documents : Dao<Document, UUID>(DefaultKit)
+object Users: Dao<Users, User, Int>(DefaultKit)
+object Documents : Dao<Documents, Document, UUID>(DefaultKit)
 
 fun main(args: Array<String>) {
 

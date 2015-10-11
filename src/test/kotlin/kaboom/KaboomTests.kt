@@ -1,5 +1,6 @@
 package kaboom
 
+import kaboom.driver.PostgresDriver
 import org.junit.ClassRule
 import org.junit.Rule
 import org.junit.rules.ExternalResource
@@ -110,7 +111,8 @@ open class KaboomTests {
             }
         }
         val kit = Kit(
-                dataSource = dataSource()
+                dataSource = dataSource(),
+                driver = PostgresDriver
         )
 
         @ClassRule

@@ -29,7 +29,7 @@ public open class ConcreteTableMappingAware<M : Any, K : Any>(
 
     @Suppress("UNCHECKED_CAST")
     val modelClass: KClass<M> by lazy {
-        (parametrizedTypes.get(0) as Class<M>).kotlin
+        (parametrizedTypes.get(1) as Class<M>).kotlin
     }
 
     override val filterWhere: List<String> by lazy {
@@ -40,19 +40,25 @@ public open class ConcreteTableMappingAware<M : Any, K : Any>(
 
     val parametrizedTypes: Array<Type> by lazy {
         val types = (this.javaClass.genericSuperclass as ParameterizedType).actualTypeArguments
-        if (types.size() < 2) {
+        if (types.size() < 3) {
             throw IllegalStateException("Can't use a DAO without concrete types")
         }
         types
     }
 }
 
-public open class ConcreteReadDao<M : Any, K : Any>(
+public open class ConcreteReadDao<Self : ConcreteReadDao<Self, M, K>, M : Any, K : Any>(
         kit: Kit,
         mapper: ((ResultSet) -> M)? = null
 ) :
         ConcreteTableMappingAware<M, K>(kit, mapper),
-        ReadDao<M, K> {
+        ReadDao<Self, M, K> {
+
+    override fun transaction(f: Self.() -> Unit) : Unit {
+        kit.transaction {
+            (this as Self).f()
+        }
+    }
 
     override fun query(): QueryBuilder<M> =
             QueryBuilder(kit, mapper, Query(select = "select * from $tableName", where = filterWhere))
@@ -74,12 +80,12 @@ public open class ConcreteReadDao<M : Any, K : Any>(
     }
 }
 
-public open class ConcreteWriteDao<M : Any, K : Any>(
+public open class ConcreteWriteDao<Self: ConcreteWriteDao<Self, M, K>, M : Any, K : Any>(
         kit: Kit,
         mapper: ((ResultSet) -> M)?
 ) :
-        ConcreteReadDao<M, K>(kit, mapper),
-        ReadWriteDao<M, K> {
+        ConcreteReadDao<Self, M, K>(kit, mapper),
+        ReadWriteDao<Self, M, K> {
 
     val columns: FieldsColumnAware by lazy {
         DataClassConstructorColumnAware(modelClass)
