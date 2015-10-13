@@ -54,8 +54,8 @@ public open class ConcreteReadDao<Self : ConcreteReadDao<Self, M, K>, M : Any, K
         ConcreteTableMappingAware<M, K>(kit, mapper),
         ReadDao<Self, M, K> {
 
-    override fun transaction(f: Self.() -> Unit) : Unit {
-        kit.transaction {
+    override fun <R> transaction(f: Self.() -> R) : R {
+        return kit.transaction {
             (this as Self).f()
         }
     }

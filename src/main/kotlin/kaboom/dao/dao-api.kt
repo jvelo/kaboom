@@ -17,7 +17,7 @@ public interface ReadDao <Self :ReadDao<Self, M, K>, out M : Any, in K> {
     fun count(): Long
     fun count(sqlWhere: String, vararg args: Any): Long
 
-    fun transaction(f: Self.() -> Unit) : Unit
+    fun <R> transaction(f: Self.() -> R) : R
 }
 
 interface ReadWriteDao<Self : ReadWriteDao<Self, M, K>, M : Any, in K> : ReadDao<Self, M, K> {

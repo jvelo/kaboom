@@ -96,7 +96,6 @@ public class DaoTests : KaboomTests() {
         )
     }
 
-    // FIXME find out why this one hangs from time to time
     @Test
     fun test_update() {
         Assert.assertEquals(4, Persons.count())
@@ -124,11 +123,15 @@ public class DaoTests : KaboomTests() {
 
     @Test
     fun test_transaction() {
-        Planets.transaction {
-            insert(Planet(name = "Mars"))
-            val mars = query().where("name = ?").argument("Mars").single()
-            Assert.assertNotNull(mars)
-            query().where(",").single()
+        try {
+            Planets.transaction<Unit> {
+                insert(Planet(name = "Mars"))
+                val mars = query().where("name = ?").argument("Mars").single()
+                Assert.assertNotNull(mars)
+                query().where(",").single() // Will generate an exception, and hopefull rollback
+            }
+        } catch (e: TransactionFailedException) {
+            // nothing
         }
 
         val mars = Planets.query().where("name = ?").argument("Mars").single()
